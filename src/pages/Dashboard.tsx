@@ -1,4 +1,3 @@
-import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -18,20 +17,26 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+/**
+ * Dashboard component with role-based UI rendering.
+ * 
+ * SECURITY NOTE: The role-based UI rendering below is for UX purposes only.
+ * All data access is protected by Row Level Security (RLS) policies in the database.
+ * Even if a user manipulates the DOM or navigates directly to tailor-specific routes,
+ * they cannot access data they don't own because RLS enforces data access at the database level.
+ * 
+ * The ProtectedRoute wrapper ensures authentication, and RLS ensures authorization.
+ */
 const Dashboard = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { isTailor, isCustomer, loading: roleLoading } = useUserRole();
 
-  if (authLoading || roleLoading) {
+  if (roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
   }
 
   const customerQuickActions = [
@@ -96,6 +101,7 @@ const Dashboard = () => {
     },
   ];
 
+  // Role-based UI is for UX only. Data security is enforced by RLS.
   const quickActions = isTailor() ? tailorQuickActions : customerQuickActions;
 
   return (
@@ -180,7 +186,7 @@ const Dashboard = () => {
             </div>
           </motion.div>
 
-          {/* Stats for tailors */}
+          {/* Stats for tailors - UI only, data protected by RLS */}
           {isTailor() && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
