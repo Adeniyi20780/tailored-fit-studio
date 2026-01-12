@@ -14,16 +14,318 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      customer_measurements: {
+        Row: {
+          additional_measurements: Json | null
+          chest: number | null
+          created_at: string
+          height: number | null
+          hips: number | null
+          id: string
+          inseam: number | null
+          measurement_name: string | null
+          neck: number | null
+          shoulder_width: number | null
+          sleeve_length: number | null
+          unit: string | null
+          updated_at: string
+          user_id: string
+          waist: number | null
+        }
+        Insert: {
+          additional_measurements?: Json | null
+          chest?: number | null
+          created_at?: string
+          height?: number | null
+          hips?: number | null
+          id?: string
+          inseam?: number | null
+          measurement_name?: string | null
+          neck?: number | null
+          shoulder_width?: number | null
+          sleeve_length?: number | null
+          unit?: string | null
+          updated_at?: string
+          user_id: string
+          waist?: number | null
+        }
+        Update: {
+          additional_measurements?: Json | null
+          chest?: number | null
+          created_at?: string
+          height?: number | null
+          hips?: number | null
+          id?: string
+          inseam?: number | null
+          measurement_name?: string | null
+          neck?: number | null
+          shoulder_width?: number | null
+          sleeve_length?: number | null
+          unit?: string | null
+          updated_at?: string
+          user_id?: string
+          waist?: number | null
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          created_at: string
+          currency: string | null
+          customer_id: string | null
+          customizations: Json | null
+          estimated_delivery: string | null
+          id: string
+          measurement_id: string | null
+          notes: string | null
+          order_number: string
+          product_id: string | null
+          shipping_address: Json | null
+          status: string | null
+          tailor_id: string | null
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          customer_id?: string | null
+          customizations?: Json | null
+          estimated_delivery?: string | null
+          id?: string
+          measurement_id?: string | null
+          notes?: string | null
+          order_number: string
+          product_id?: string | null
+          shipping_address?: Json | null
+          status?: string | null
+          tailor_id?: string | null
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          customer_id?: string | null
+          customizations?: Json | null
+          estimated_delivery?: string | null
+          id?: string
+          measurement_id?: string | null
+          notes?: string | null
+          order_number?: string
+          product_id?: string | null
+          shipping_address?: Json | null
+          status?: string | null
+          tailor_id?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_measurement_id_fkey"
+            columns: ["measurement_id"]
+            isOneToOne: false
+            referencedRelation: "customer_measurements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_tailor_id_fkey"
+            columns: ["tailor_id"]
+            isOneToOne: false
+            referencedRelation: "tailors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          base_price: number
+          category: string
+          colors: string[] | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          fabrics: string[] | null
+          id: string
+          images: string[] | null
+          is_active: boolean | null
+          name: string
+          sizes: string[] | null
+          tailor_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_price: number
+          category: string
+          colors?: string[] | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          fabrics?: string[] | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          name: string
+          sizes?: string[] | null
+          tailor_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_price?: number
+          category?: string
+          colors?: string[] | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          fabrics?: string[] | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          name?: string
+          sizes?: string[] | null
+          tailor_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_tailor_id_fkey"
+            columns: ["tailor_id"]
+            isOneToOne: false
+            referencedRelation: "tailors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tailors: {
+        Row: {
+          banner_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_verified: boolean | null
+          location: string | null
+          logo_url: string | null
+          rating: number | null
+          specialties: string[] | null
+          store_name: string
+          store_slug: string
+          total_reviews: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          banner_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          location?: string | null
+          logo_url?: string | null
+          rating?: number | null
+          specialties?: string[] | null
+          store_name: string
+          store_slug: string
+          total_reviews?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          banner_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          location?: string | null
+          logo_url?: string | null
+          rating?: number | null
+          specialties?: string[] | null
+          store_name?: string
+          store_slug?: string
+          total_reviews?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "tailor" | "customer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +452,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "tailor", "customer"],
+    },
   },
 } as const
