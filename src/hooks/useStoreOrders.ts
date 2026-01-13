@@ -154,6 +154,51 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
     return true;
   });
 
+  // Send order notification
+  const sendNotification = async (orderId: string, status: string) => {
+    if (!["shipped", "delivered"].includes(status)) return;
+    
+    const order = orders.find(o => o.id === orderId);
+    if (!order || !order.customer_email) {
+      console.log("Cannot send notification: missing order or customer email");
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-order-notification`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            orderId: order.id,
+            orderNumber: order.order_number,
+            customerEmail: order.customer_email,
+            customerName: order.customer_name,
+            productName: order.product_name,
+            status: status,
+            estimatedDelivery: order.estimated_delivery,
+          }),
+        }
+      );
+
+      const result = await response.json();
+      if (response.ok && result.success) {
+        toast.success(`${status === 'shipped' ? 'Shipment' : 'Delivery'} notification sent to customer`);
+      } else {
+        console.error("Notification error:", result);
+      }
+    } catch (error) {
+      console.error("Failed to send notification:", error);
+    }
+  };
+
   // Update order status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ orderId, status, notes }: { orderId: string; status: string; notes?: string }) => {
@@ -166,10 +211,18 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
         .update(updateData)
         .eq("id", orderId);
       if (error) throw error;
+      
+      // Return status to use in onSuccess
+      return { orderId, status };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["store-all-orders"] });
       toast.success("Order status updated successfully");
+      
+      // Send notification for shipped/delivered status
+      if (data) {
+        sendNotification(data.orderId, data.status);
+      }
     },
     onError: (error) => {
       toast.error("Failed to update order status");
