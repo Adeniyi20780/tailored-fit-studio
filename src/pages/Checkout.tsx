@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ShieldCheck, Loader2, CheckCircle, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Loader2, CheckCircle, ShoppingCart, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -186,48 +186,98 @@ export default function Checkout() {
     setIsPlacingOrder(true);
 
     try {
+      let items: Array<{ name: string; quantity: number; amount: number }> = [];
+      let orderId: string | undefined;
+      let orderNum: string | undefined;
+      let totalAmount: number;
+      let currency: string = 'USD';
+
       if (checkoutMode === 'single' && pendingData) {
         // Single product checkout (from customization)
+        totalAmount = calculateSingleTotal();
         const order = await createOrder.mutateAsync({
           productId: pendingData.productId,
           tailorId: pendingData.tailorId,
           measurementId: selectedMeasurement?.id,
           customizations: pendingData.customization as unknown as Record<string, unknown>,
           shippingAddress,
-          totalAmount: calculateSingleTotal(),
+          totalAmount,
           currency: 'USD',
           notes: notes || undefined,
         });
 
-        sessionStorage.removeItem('pendingCustomization');
-        setOrderNumbers([order.order_number]);
-        setOrderComplete(true);
-        toast.success('Order placed successfully!');
+        orderId = order.id;
+        orderNum = order.order_number;
+        items = [{
+          name: pendingData.productName,
+          quantity: 1,
+          amount: totalAmount,
+        }];
       } else {
-        // Cart-based checkout
-        const orderPromises = cartItemsWithProducts.map(item => 
-          createOrder.mutateAsync({
-            productId: item.product_id,
-            tailorId: item.product.tailor_id || undefined,
-            measurementId: selectedMeasurement?.id,
-            customizations: item.customizations || {},
-            shippingAddress,
-            totalAmount: item.product.base_price * item.quantity,
-            currency: item.product.currency || 'USD',
-            notes: notes || undefined,
-          })
-        );
+        // Cart-based checkout - create first order for payment reference
+        const firstItem = cartItemsWithProducts[0];
+        const firstOrder = await createOrder.mutateAsync({
+          productId: firstItem.product_id,
+          tailorId: firstItem.product.tailor_id || undefined,
+          measurementId: selectedMeasurement?.id,
+          customizations: firstItem.customizations || {},
+          shippingAddress,
+          totalAmount: firstItem.product.base_price * firstItem.quantity,
+          currency: firstItem.product.currency || 'USD',
+          notes: notes || undefined,
+        });
 
-        const orders = await Promise.all(orderPromises);
+        orderId = firstOrder.id;
+        orderNum = firstOrder.order_number;
+        currency = firstItem.product.currency || 'USD';
+
+        // Create remaining orders
+        if (cartItemsWithProducts.length > 1) {
+          const remainingPromises = cartItemsWithProducts.slice(1).map(item => 
+            createOrder.mutateAsync({
+              productId: item.product_id,
+              tailorId: item.product.tailor_id || undefined,
+              measurementId: selectedMeasurement?.id,
+              customizations: item.customizations || {},
+              shippingAddress,
+              totalAmount: item.product.base_price * item.quantity,
+              currency: item.product.currency || 'USD',
+              notes: notes || undefined,
+            })
+          );
+          await Promise.all(remainingPromises);
+        }
+
+        totalAmount = calculateCartTotal();
+        items = cartItemsWithProducts.map(item => ({
+          name: item.product.name,
+          quantity: item.quantity,
+          amount: item.product.base_price * item.quantity,
+        }));
+
         clearCart();
-        setOrderNumbers(orders.map(o => o.order_number));
-        setOrderComplete(true);
-        toast.success(`${orders.length} order(s) placed successfully!`);
       }
+
+      // Create Stripe checkout session
+      const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payment', {
+        body: {
+          amount: totalAmount,
+          currency,
+          orderId,
+          orderNumber: orderNum,
+          items,
+        },
+      });
+
+      if (paymentError || !paymentData?.url) {
+        throw new Error(paymentError?.message || 'Failed to create payment session');
+      }
+
+      // Redirect to Stripe Checkout
+      window.location.href = paymentData.url;
     } catch (error) {
       console.error('Order error:', error);
-      toast.error('Failed to place order. Please try again.');
-    } finally {
+      toast.error('Failed to process order. Please try again.');
       setIsPlacingOrder(false);
     }
   };
@@ -419,12 +469,12 @@ export default function Checkout() {
                   {isPlacingOrder ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Processing...
+                      Processing Payment...
                     </>
                   ) : (
                     <>
-                      <ShieldCheck className="w-4 h-4" />
-                      Place Order - ${calculateTotal().toFixed(2)}
+                      <CreditCard className="w-4 h-4" />
+                      Pay ${calculateTotal().toFixed(2)}
                     </>
                   )}
                 </Button>
@@ -475,15 +525,20 @@ export default function Checkout() {
                 {isPlacingOrder ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
+                    Processing Payment...
                   </>
                 ) : (
                   <>
-                    <ShieldCheck className="w-4 h-4" />
-                    Place Order
+                    <CreditCard className="w-4 h-4" />
+                    Pay with Card
                   </>
                 )}
               </Button>
+
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Secure payment powered by Stripe</span>
+              </div>
 
               <p className="text-xs text-center text-muted-foreground">
                 By placing your order, you agree to our terms of service
