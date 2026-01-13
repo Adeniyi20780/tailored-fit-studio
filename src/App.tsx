@@ -12,6 +12,7 @@ import Store from "./pages/Store";
 import StoreOrders from "./pages/StoreOrders";
 import StoreProductsNew from "./pages/StoreProductsNew";
 import Customize from "./pages/Customize";
+import Catalog from "./pages/Catalog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/catalog" element={<Catalog />} />
             <Route path="/auth" element={<Auth />} />
             <Route
               path="/dashboard"

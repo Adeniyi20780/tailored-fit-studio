@@ -23,9 +23,9 @@ const Header = () => {
   };
 
   const navLinks = [
+    { href: "/catalog", label: "Shop" },
     { href: "/marketplace", label: "Browse Tailors" },
     { href: "/how-it-works", label: "How It Works" },
-    { href: "/measurement", label: "AI Measurement" },
     { href: "/for-tailors", label: "For Tailors" },
   ];
 
