@@ -1,11 +1,14 @@
 import { format } from "date-fns";
-import { Package, Calendar, MapPin, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Package, Calendar, MapPin, ChevronRight, Download, Eye } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CustomerOrder } from "@/hooks/useCustomerOrders";
 import OrderStatusTracker from "./OrderStatusTracker";
+import { generateOrderReceipt } from "@/lib/receiptGenerator";
+import { toast } from "sonner";
 
 interface OrderCardProps {
   order: CustomerOrder;
@@ -36,7 +39,28 @@ const getStatusBadgeColor = (status: string) => {
 };
 
 const OrderCard = ({ order, onClick, showTracker = true }: OrderCardProps) => {
+  const navigate = useNavigate();
   const shippingAddress = order.shipping_address as Record<string, string> | null;
+
+  const handleDownloadReceipt = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    generateOrderReceipt({
+      ...order,
+      product: order.product_id ? {
+        name: order.product_name,
+        category: order.product_category,
+      } : null,
+      tailor: {
+        store_name: order.tailor_name,
+      },
+    });
+    toast.success("Receipt downloaded!");
+  };
+
+  const handleTrackOrder = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/order/${order.id}`);
+  };
 
   return (
     <Card 
@@ -118,6 +142,27 @@ const OrderCard = ({ order, onClick, showTracker = true }: OrderCardProps) => {
             </span>
           </div>
         )}
+
+        {/* Action Buttons */}
+        <div className="mt-4 pt-4 border-t flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleTrackOrder}
+            className="flex-1"
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            Track Order
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handleDownloadReceipt}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Receipt
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

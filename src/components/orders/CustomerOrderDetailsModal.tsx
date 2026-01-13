@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -6,11 +7,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Package, Calendar, MapPin, Store, Palette, Ruler } from "lucide-react";
+import { Package, Calendar, MapPin, Store, Palette, Ruler, Download, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CustomerOrder } from "@/hooks/useCustomerOrders";
 import OrderStatusTracker from "./OrderStatusTracker";
+import { generateOrderReceipt, generatePDFReceipt } from "@/lib/receiptGenerator";
+import { toast } from "sonner";
 
 interface CustomerOrderDetailsModalProps {
   order: CustomerOrder | null;
@@ -45,22 +49,73 @@ const CustomerOrderDetailsModal = ({
   open,
   onOpenChange,
 }: CustomerOrderDetailsModalProps) => {
+  const navigate = useNavigate();
+  
   if (!order) return null;
 
   const shippingAddress = order.shipping_address as Record<string, string> | null;
   const customizations = order.customizations as Record<string, unknown> | null;
 
+  const handleDownloadReceipt = () => {
+    generateOrderReceipt({
+      ...order,
+      product: order.product_id ? {
+        name: order.product_name,
+        category: order.product_category,
+      } : null,
+      tailor: {
+        store_name: order.tailor_name,
+      },
+    });
+    toast.success("Receipt downloaded!");
+  };
+
+  const handlePrintReceipt = () => {
+    generatePDFReceipt({
+      ...order,
+      product: order.product_id ? {
+        name: order.product_name,
+        category: order.product_category,
+      } : null,
+      tailor: {
+        store_name: order.tailor_name,
+      },
+    });
+  };
+
+  const handleViewTracking = () => {
+    onOpenChange(false);
+    navigate(`/order/${order.id}`);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Order {order.order_number}
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Order {order.order_number}
+            </DialogTitle>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={handleViewTracking}>
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Track Order
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleDownloadReceipt}>
+              <Download className="w-4 h-4 mr-2" />
+              Download Receipt
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handlePrintReceipt}>
+              Print Receipt
+            </Button>
+          </div>
+
           {/* Order Status Tracker */}
           <div className="bg-muted/30 rounded-lg p-4">
             <OrderStatusTracker currentStatus={order.status} />

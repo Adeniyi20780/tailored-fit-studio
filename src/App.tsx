@@ -24,6 +24,7 @@ import TailorsMarketplace from "./pages/TailorsMarketplace";
 import Wishlist from "./pages/Wishlist";
 import SharedWishlist from "./pages/SharedWishlist";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import OrderTracking from "./pages/OrderTracking";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -118,6 +119,14 @@ const App = () => (
             />
             <Route path="/shared-wishlist/:shareCode" element={<SharedWishlist />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route
+              path="/order/:orderId"
+              element={
+                <ProtectedRoute>
+                  <OrderTracking />
+                </ProtectedRoute>
+              }
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
