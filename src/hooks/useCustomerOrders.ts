@@ -21,6 +21,7 @@ export interface CustomerOrder {
   product_name: string;
   product_category: string;
   product_image: string | null;
+  tailor_id: string | null;
   tailor_name: string;
 }
 
@@ -138,6 +139,7 @@ export const useCustomerOrders = () => {
       product_name: product?.name || "Unknown Product",
       product_category: product?.category || "Unknown",
       product_image: product?.images?.[0] || null,
+      tailor_id: order.tailor_id,
       tailor_name: tailor?.store_name || "Unknown Tailor",
     };
   });
