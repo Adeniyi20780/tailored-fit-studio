@@ -2,3 +2,7 @@ project_id = "lszusylzynkgiygovhcc"
 
 [functions.send-order-notification]
 verify_jwt = false
+
+[functions.price-alert-notifications]
+verify_jwt = false
+schedule = "0 * * * *"
