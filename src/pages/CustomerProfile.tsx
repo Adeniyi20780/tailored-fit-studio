@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { User, Mail, Phone, Calendar, Package, Loader2 } from "lucide-react";
+import { User, Mail, Phone, Calendar, Package, Loader2, Wallet, Bell } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 
@@ -28,6 +28,8 @@ import {
 import { useCustomerProfile } from "@/hooks/useCustomerProfile";
 import { useCustomerOrders } from "@/hooks/useCustomerOrders";
 import { useAuth } from "@/contexts/AuthContext";
+import { WalletCard } from "@/components/wallet/WalletCard";
+import { NotificationSettings } from "@/components/notifications/NotificationSettings";
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Name must be at least 2 characters").max(100),
@@ -124,7 +126,7 @@ const CustomerProfile = () => {
           </div>
 
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList>
+            <TabsList className="flex-wrap h-auto">
               <TabsTrigger value="profile" className="gap-2">
                 <User className="h-4 w-4" />
                 Profile
@@ -132,6 +134,14 @@ const CustomerProfile = () => {
               <TabsTrigger value="orders" className="gap-2">
                 <Package className="h-4 w-4" />
                 Orders ({orders.length})
+              </TabsTrigger>
+              <TabsTrigger value="wallet" className="gap-2">
+                <Wallet className="h-4 w-4" />
+                Wallet
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="gap-2">
+                <Bell className="h-4 w-4" />
+                Notifications
               </TabsTrigger>
             </TabsList>
 
@@ -346,6 +356,16 @@ const CustomerProfile = () => {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Wallet Tab */}
+            <TabsContent value="wallet">
+              <WalletCard />
+            </TabsContent>
+
+            {/* Notifications Tab */}
+            <TabsContent value="notifications">
+              <NotificationSettings />
             </TabsContent>
           </Tabs>
         </motion.div>
