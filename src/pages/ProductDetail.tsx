@@ -9,6 +9,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import ProductImageGallery from "@/components/product/ProductImageGallery";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
+import { ProductReviewsSection } from "@/components/reviews/ProductReviewsSection";
 import { useProduct } from "@/hooks/useProducts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -244,6 +245,12 @@ const ProductDetail = () => {
                 </div>
               </div>
             </motion.div>
+          </div>
+
+          {/* Reviews Section */}
+          <div className="mt-16">
+            <Separator className="mb-12" />
+            <ProductReviewsSection productId={product.id} />
           </div>
         </div>
       </main>
