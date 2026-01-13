@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Store from "./pages/Store";
 import StoreOrders from "./pages/StoreOrders";
 import StoreProductsNew from "./pages/StoreProductsNew";
+import Customize from "./pages/Customize";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/customize" element={<Customize />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
