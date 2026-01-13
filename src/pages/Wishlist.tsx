@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, Trash2, Sparkles, ShoppingBag, Loader2, Share2, Copy, Check, Twitter, Facebook, Mail, Bell, BellOff, Link2, Users } from "lucide-react";
+import { Heart, Trash2, Sparkles, ShoppingBag, Loader2, Share2, Copy, Check, Twitter, Facebook, Mail, Bell, BellOff, Link2, Users, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ import Footer from "@/components/layout/Footer";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useWishlistNotifications } from "@/hooks/useWishlistNotifications";
 import { useSharedWishlist } from "@/hooks/useSharedWishlist";
+import { useCart } from "@/hooks/useCart";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,6 +50,7 @@ const Wishlist = () => {
   const { wishlistItems, isLoading: wishlistLoading, removeFromWishlist, isToggling } = useWishlist();
   const { hasNotificationsEnabled, toggleNotifications, isToggling: isTogglingNotifications } = useWishlistNotifications();
   const { createSharedWishlist, isCreating, getShareUrl } = useSharedWishlist();
+  const { addToCart, isInCart, isAdding } = useCart();
   const { toast } = useToast();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareWishlistDialogOpen, setShareWishlistDialogOpen] = useState(false);
@@ -303,14 +305,14 @@ const Wishlist = () => {
 
                       <div className="flex gap-2 pt-2">
                         <Button
-                          asChild
                           size="sm"
+                          variant={isInCart(product.id) ? "secondary" : "default"}
                           className="flex-1 gap-1.5"
+                          onClick={() => addToCart({ productId: product.id })}
+                          disabled={isAdding || isInCart(product.id)}
                         >
-                          <Link to={getCustomizeUrl(product)}>
-                            <Sparkles className="w-4 h-4" />
-                            Customize
-                          </Link>
+                          <ShoppingCart className="w-4 h-4" />
+                          {isInCart(product.id) ? "In Cart" : "Add to Cart"}
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

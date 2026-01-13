@@ -5,6 +5,7 @@ import { Menu, X, Scissors, Heart, User, LogOut, Package, Store, UserCircle } fr
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWishlist } from "@/hooks/useWishlist";
+import CartDrawer from "@/components/cart/CartDrawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,6 +71,7 @@ const Header = () => {
                 )}
               </Button>
             </Link>
+            <CartDrawer />
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
