@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Scissors, Heart, User, LogOut, Package, Store, UserCircle } from "lucide-react";
+import { Menu, X, Scissors, Heart, User, LogOut, Package, Store, UserCircle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useWishlist } from "@/hooks/useWishlist";
 import CartDrawer from "@/components/cart/CartDrawer";
 import {
@@ -17,6 +18,7 @@ import {
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { isAdmin } = useUserRole();
   const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
   const wishlistCount = wishlistItems.length;
@@ -97,6 +99,14 @@ const Header = () => {
                       Dashboard
                     </Link>
                   </DropdownMenuItem>
+                  {isAdmin() && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin" className="cursor-pointer">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Admin Panel
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
                     <LogOut className="w-4 h-4 mr-2" />

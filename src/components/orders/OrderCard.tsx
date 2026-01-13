@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { Package, Calendar, MapPin, ChevronRight, Download, Eye } from "lucide-react";
+import { Package, Calendar, MapPin, ChevronRight, Download, Eye, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { CustomerOrder } from "@/hooks/useCustomerOrders";
 import OrderStatusTracker from "./OrderStatusTracker";
 import { generateOrderReceipt } from "@/lib/receiptGenerator";
 import { toast } from "sonner";
+import RefundRequestModal from "@/components/refunds/RefundRequestModal";
 
 interface OrderCardProps {
   order: CustomerOrder;
@@ -40,7 +42,10 @@ const getStatusBadgeColor = (status: string) => {
 
 const OrderCard = ({ order, onClick, showTracker = true }: OrderCardProps) => {
   const navigate = useNavigate();
+  const [showRefundModal, setShowRefundModal] = useState(false);
   const shippingAddress = order.shipping_address as Record<string, string> | null;
+
+  const canRequestRefund = ["delivered", "shipped", "in_progress"].includes(order.status);
 
   const handleDownloadReceipt = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -144,7 +149,7 @@ const OrderCard = ({ order, onClick, showTracker = true }: OrderCardProps) => {
         )}
 
         {/* Action Buttons */}
-        <div className="mt-4 pt-4 border-t flex items-center gap-2">
+        <div className="mt-4 pt-4 border-t flex items-center gap-2 flex-wrap">
           <Button 
             variant="outline" 
             size="sm" 
@@ -162,8 +167,35 @@ const OrderCard = ({ order, onClick, showTracker = true }: OrderCardProps) => {
             <Download className="w-4 h-4 mr-2" />
             Receipt
           </Button>
+          {canRequestRefund && order.status !== "refunded" && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowRefundModal(true);
+              }}
+              className="text-destructive hover:text-destructive"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refund
+            </Button>
+          )}
         </div>
       </CardContent>
+
+      {/* Refund Modal */}
+      <RefundRequestModal
+        open={showRefundModal}
+        onOpenChange={setShowRefundModal}
+        order={{
+          id: order.id,
+          order_number: order.order_number,
+          total_amount: order.total_amount,
+          tailor_id: order.tailor_id || "",
+          status: order.status,
+        }}
+      />
     </Card>
   );
 };
