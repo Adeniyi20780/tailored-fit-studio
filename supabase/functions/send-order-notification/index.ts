@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
+const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
+const TWILIO_WHATSAPP_NUMBER = Deno.env.get("TWILIO_WHATSAPP_NUMBER");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,10 +17,12 @@ interface OrderNotificationRequest {
   orderNumber: string;
   customerEmail: string;
   customerName: string;
+  customerPhone?: string;
   productName: string;
   status: "shipped" | "delivered";
   estimatedDelivery?: string;
   trackingNumber?: string;
+  sendWhatsApp?: boolean;
 }
 
 const getEmailContent = (data: OrderNotificationRequest) => {
@@ -102,6 +107,65 @@ const getEmailContent = (data: OrderNotificationRequest) => {
   };
 };
 
+const getWhatsAppMessage = (data: OrderNotificationRequest): string => {
+  if (data.status === "shipped") {
+    let message = `📦 *Your Order is On Its Way!*\n\nHi ${data.customerName},\n\nGreat news! Your order has been shipped.\n\n*Order Details:*\n• Order Number: ${data.orderNumber}\n• Product: ${data.productName}`;
+    
+    if (data.estimatedDelivery) {
+      message += `\n• Estimated Delivery: ${data.estimatedDelivery}`;
+    }
+    if (data.trackingNumber) {
+      message += `\n• Tracking Number: ${data.trackingNumber}`;
+    }
+    
+    message += `\n\nWe'll notify you when your order is delivered!\n\n— The TailorSwift Team`;
+    return message;
+  }
+
+  return `🎉 *Your Order Has Arrived!*\n\nHi ${data.customerName},\n\nYour order has been successfully delivered!\n\n*Order Details:*\n• Order Number: ${data.orderNumber}\n• Product: ${data.productName}\n\nWe hope you love your new custom-tailored item. If you have any questions about care or fit, don't hesitate to reach out!\n\nThank you for choosing us!\n— The TailorSwift Team`;
+};
+
+const sendWhatsAppMessage = async (phoneNumber: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string }> => {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_WHATSAPP_NUMBER) {
+    console.log("WhatsApp credentials not configured, skipping WhatsApp notification");
+    return { success: false, error: "WhatsApp credentials not configured" };
+  }
+
+  // Format phone number for WhatsApp (should be in E.164 format)
+  const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+  
+  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
+  
+  const formData = new URLSearchParams();
+  formData.append('From', `whatsapp:${TWILIO_WHATSAPP_NUMBER}`);
+  formData.append('To', `whatsapp:${formattedPhone}`);
+  formData.append('Body', message);
+
+  try {
+    const response = await fetch(twilioUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData.toString(),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error("Twilio WhatsApp API error:", result);
+      return { success: false, error: result.message || "Failed to send WhatsApp message" };
+    }
+
+    console.log("WhatsApp message sent successfully:", result.sid);
+    return { success: true, messageId: result.sid };
+  } catch (error) {
+    console.error("Error sending WhatsApp message:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
+};
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -151,9 +215,10 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const emailContent = getEmailContent(data);
+    const results: { email?: { success: boolean; id?: string; error?: string }; whatsapp?: { success: boolean; messageId?: string; error?: string } } = {};
 
-    // Send email using Resend API directly
+    // Send email using Resend API
+    const emailContent = getEmailContent(data);
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -172,19 +237,29 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!emailResponse.ok) {
       console.error("Resend API error:", emailResult);
-      throw new Error(emailResult.message || "Failed to send email");
+      results.email = { success: false, error: emailResult.message || "Failed to send email" };
+    } else {
+      console.log("Email sent successfully:", emailResult);
+      results.email = { success: true, id: emailResult.id };
     }
 
-    console.log("Email sent successfully:", emailResult);
+    // Send WhatsApp message if requested and phone number is available
+    if (data.sendWhatsApp && data.customerPhone) {
+      const whatsappMessage = getWhatsAppMessage(data);
+      const whatsappResult = await sendWhatsAppMessage(data.customerPhone, whatsappMessage);
+      results.whatsapp = whatsappResult;
+    }
+
+    const allSuccessful = results.email?.success && (!data.sendWhatsApp || !data.customerPhone || results.whatsapp?.success);
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        message: `${data.status === 'shipped' ? 'Shipment' : 'Delivery'} notification sent`,
-        emailId: emailResult.id 
+        success: allSuccessful,
+        message: `${data.status === 'shipped' ? 'Shipment' : 'Delivery'} notification(s) sent`,
+        results
       }),
       {
-        status: 200,
+        status: allSuccessful ? 200 : 207, // 207 Multi-Status if partial success
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
