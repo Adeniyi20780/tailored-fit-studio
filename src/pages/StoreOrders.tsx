@@ -33,8 +33,8 @@ const StoreOrders = () => {
     updateStatus({ orderId, status });
   };
 
-  const handleUpdateStatus = (orderId: string, status: string, notes?: string) => {
-    updateStatus({ orderId, status, notes });
+  const handleUpdateStatus = (orderId: string, status: string, notes?: string, sendWhatsApp?: boolean) => {
+    updateStatus({ orderId, status, notes, sendWhatsApp });
   };
 
   const handleUpdateDelivery = (orderId: string, estimatedDelivery: string) => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,8 +20,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
-import { CalendarIcon, Package, User, MapPin, FileText, Clock } from "lucide-react";
+import { CalendarIcon, Package, User, MapPin, FileText, Clock, MessageCircle, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrderWithDetails, ORDER_STATUSES, getStatusColor } from "@/hooks/useStoreOrders";
 
@@ -29,7 +30,7 @@ interface OrderDetailsModalProps {
   order: OrderWithDetails | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdateStatus: (orderId: string, status: string, notes?: string) => void;
+  onUpdateStatus: (orderId: string, status: string, notes?: string, sendWhatsApp?: boolean) => void;
   onUpdateDelivery: (orderId: string, estimatedDelivery: string) => void;
   isUpdating: boolean;
 }
@@ -45,6 +46,14 @@ const OrderDetailsModal = ({
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [deliveryDate, setDeliveryDate] = useState<Date | undefined>(undefined);
+  const [sendWhatsApp, setSendWhatsApp] = useState<boolean>(false);
+
+  // Reset WhatsApp toggle when status changes to non-notification status
+  useEffect(() => {
+    if (!["shipped", "delivered"].includes(selectedStatus)) {
+      setSendWhatsApp(false);
+    }
+  }, [selectedStatus]);
 
   // Reset state when order changes
   const handleOpenChange = (isOpen: boolean) => {
@@ -52,13 +61,14 @@ const OrderDetailsModal = ({
       setSelectedStatus(order.status);
       setNotes(order.notes || "");
       setDeliveryDate(order.estimated_delivery ? new Date(order.estimated_delivery) : undefined);
+      setSendWhatsApp(false);
     }
     onOpenChange(isOpen);
   };
 
   const handleUpdateStatus = () => {
     if (order && selectedStatus) {
-      onUpdateStatus(order.id, selectedStatus, notes);
+      onUpdateStatus(order.id, selectedStatus, notes, sendWhatsApp);
     }
   };
 
@@ -131,6 +141,15 @@ const OrderDetailsModal = ({
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
                   <p className="font-medium">{order.customer_email}</p>
+                </div>
+              )}
+              {order.customer_phone && (
+                <div>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Phone className="h-3 w-3" />
+                    Phone
+                  </p>
+                  <p className="font-medium">{order.customer_phone}</p>
                 </div>
               )}
             </div>
@@ -263,6 +282,25 @@ const OrderDetailsModal = ({
                   rows={3}
                 />
               </div>
+
+              {/* WhatsApp Notification Toggle - Only show for shipped/delivered */}
+              {["shipped", "delivered"].includes(selectedStatus) && order.customer_phone && (
+                <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
+                  <div className="space-y-0.5">
+                    <Label className="flex items-center gap-2 text-base">
+                      <MessageCircle className="h-4 w-4 text-green-600" />
+                      Send WhatsApp Notification
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Also notify customer via WhatsApp at {order.customer_phone}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={sendWhatsApp}
+                    onCheckedChange={setSendWhatsApp}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 pt-2">

@@ -22,6 +22,7 @@ export interface OrderWithDetails {
   measurement_id: string | null;
   customer_name: string;
   customer_email: string | null;
+  customer_phone: string | null;
   product_name: string;
   product_category: string;
 }
@@ -102,7 +103,7 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
       if (customerIds.length === 0) return [];
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, full_name, email")
+        .select("user_id, full_name, email, phone")
         .in("user_id", customerIds);
       if (error) throw error;
       return data || [];
@@ -131,6 +132,7 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
       measurement_id: order.measurement_id,
       customer_name: customer?.full_name || "Unknown Customer",
       customer_email: customer?.email || null,
+      customer_phone: customer?.phone || null,
       product_name: product?.name || "Unknown Product",
       product_category: product?.category || "Unknown",
     };
@@ -155,7 +157,7 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
   });
 
   // Send order notification
-  const sendNotification = async (orderId: string, status: string) => {
+  const sendNotification = async (orderId: string, status: string, sendWhatsApp: boolean = false) => {
     if (!["shipped", "delivered"].includes(status)) return;
     
     const order = orders.find(o => o.id === orderId);
@@ -181,16 +183,32 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
             orderNumber: order.order_number,
             customerEmail: order.customer_email,
             customerName: order.customer_name,
+            customerPhone: order.customer_phone,
             productName: order.product_name,
             status: status,
             estimatedDelivery: order.estimated_delivery,
+            sendWhatsApp: sendWhatsApp && !!order.customer_phone,
           }),
         }
       );
 
       const result = await response.json();
       if (response.ok && result.success) {
-        toast.success(`${status === 'shipped' ? 'Shipment' : 'Delivery'} notification sent to customer`);
+        const channels = [];
+        if (result.results?.email?.success) channels.push('email');
+        if (result.results?.whatsapp?.success) channels.push('WhatsApp');
+        toast.success(`${status === 'shipped' ? 'Shipment' : 'Delivery'} notification sent via ${channels.join(' & ')}`);
+      } else if (response.status === 207) {
+        // Partial success
+        const channels = [];
+        if (result.results?.email?.success) channels.push('email');
+        if (result.results?.whatsapp?.success) channels.push('WhatsApp');
+        if (channels.length > 0) {
+          toast.success(`Notification sent via ${channels.join(' & ')}`);
+        }
+        if (result.results?.whatsapp?.error) {
+          console.error("WhatsApp notification failed:", result.results.whatsapp.error);
+        }
       } else {
         console.error("Notification error:", result);
       }
@@ -201,7 +219,7 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
 
   // Update order status mutation
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ orderId, status, notes }: { orderId: string; status: string; notes?: string }) => {
+    mutationFn: async ({ orderId, status, notes, sendWhatsApp }: { orderId: string; status: string; notes?: string; sendWhatsApp?: boolean }) => {
       const updateData: { status: string; notes?: string } = { status };
       if (notes !== undefined) {
         updateData.notes = notes;
@@ -213,7 +231,7 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
       if (error) throw error;
       
       // Return status to use in onSuccess
-      return { orderId, status };
+      return { orderId, status, sendWhatsApp };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["store-all-orders"] });
@@ -221,7 +239,7 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
       
       // Send notification for shipped/delivered status
       if (data) {
-        sendNotification(data.orderId, data.status);
+        sendNotification(data.orderId, data.status, data.sendWhatsApp);
       }
     },
     onError: (error) => {
