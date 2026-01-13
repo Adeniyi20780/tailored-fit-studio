@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, Trash2, Sparkles, ShoppingBag, Loader2, Share2, Copy, Check, Twitter, Facebook, Mail } from "lucide-react";
+import { Heart, Trash2, Sparkles, ShoppingBag, Loader2, Share2, Copy, Check, Twitter, Facebook, Mail, Bell, BellOff, Link2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +25,8 @@ import { Input } from "@/components/ui/input";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useWishlist } from "@/hooks/useWishlist";
+import { useWishlistNotifications } from "@/hooks/useWishlistNotifications";
+import { useSharedWishlist } from "@/hooks/useSharedWishlist";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,8 +47,12 @@ const categoryMap: Record<string, ProductCategory> = {
 
 const Wishlist = () => {
   const { wishlistItems, isLoading: wishlistLoading, removeFromWishlist, isToggling } = useWishlist();
+  const { hasNotificationsEnabled, toggleNotifications, isToggling: isTogglingNotifications } = useWishlistNotifications();
+  const { createSharedWishlist, isCreating, getShareUrl } = useSharedWishlist();
   const { toast } = useToast();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareWishlistDialogOpen, setShareWishlistDialogOpen] = useState(false);
+  const [sharedWishlistUrl, setSharedWishlistUrl] = useState("");
   const [shareProduct, setShareProduct] = useState<typeof products[0] | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -119,6 +127,45 @@ const Wishlist = () => {
     setShareDialogOpen(true);
   };
 
+  const handleShareEntireWishlist = async () => {
+    if (wishlistItems.length === 0) {
+      toast({
+        title: "Empty wishlist",
+        description: "Add some products to share your wishlist.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const productIds = wishlistItems.map(w => w.product_id);
+      const sharedWishlist = await createSharedWishlist({ productIds });
+      const url = getShareUrl(sharedWishlist.share_code);
+      setSharedWishlistUrl(url);
+      setShareWishlistDialogOpen(true);
+    } catch (error) {
+      // Error handled in hook
+    }
+  };
+
+  const handleCopyWishlistLink = async () => {
+    try {
+      await navigator.clipboard.writeText(sharedWishlistUrl);
+      setCopied(true);
+      toast({
+        title: "Link copied!",
+        description: "Share this link with friends to show them your wishlist.",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({
+        title: "Failed to copy",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
@@ -138,9 +185,24 @@ const Wishlist = () => {
               <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
                 My Wishlist
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-6">
                 {wishlistItems.length} {wishlistItems.length === 1 ? "item" : "items"} saved
               </p>
+              {wishlistItems.length > 0 && (
+                <Button
+                  onClick={handleShareEntireWishlist}
+                  disabled={isCreating}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  {isCreating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Users className="w-4 h-4" />
+                  )}
+                  Share Entire Wishlist
+                </Button>
+              )}
             </motion.div>
           </div>
         </section>
@@ -210,11 +272,33 @@ const Wishlist = () => {
                         </p>
                       )}
 
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-xs text-muted-foreground">From</span>
-                        <span className="font-display text-xl font-bold text-foreground">
-                          {product.currency || "$"}{product.base_price.toFixed(2)}
-                        </span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-xs text-muted-foreground">From</span>
+                          <span className="font-display text-xl font-bold text-foreground">
+                            {product.currency || "$"}{product.base_price.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Notification Toggle */}
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-2">
+                          {hasNotificationsEnabled(product.id) ? (
+                            <Bell className="w-4 h-4 text-primary" />
+                          ) : (
+                            <BellOff className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          <Label htmlFor={`notify-${product.id}`} className="text-xs cursor-pointer">
+                            Price & stock alerts
+                          </Label>
+                        </div>
+                        <Switch
+                          id={`notify-${product.id}`}
+                          checked={hasNotificationsEnabled(product.id)}
+                          onCheckedChange={() => toggleNotifications(product.id)}
+                          disabled={isTogglingNotifications}
+                        />
                       </div>
 
                       <div className="flex gap-2 pt-2">
@@ -341,6 +425,74 @@ const Wishlist = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Entire Wishlist Dialog */}
+      <Dialog open={shareWishlistDialogOpen} onOpenChange={setShareWishlistDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Share Your Wishlist
+            </DialogTitle>
+            <DialogDescription>
+              Anyone with this link can view your wishlist collection
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-muted/50 rounded-lg text-center">
+              <p className="text-sm text-muted-foreground mb-1">Sharing</p>
+              <p className="font-semibold text-lg">
+                {products.length} {products.length === 1 ? "product" : "products"}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={sharedWishlistUrl}
+                className="flex-1"
+              />
+              <Button
+                variant="outline"
+                onClick={handleCopyWishlistLink}
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              </Button>
+            </div>
+            <div className="flex justify-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const text = `Check out my wishlist on TailorsShop!`;
+                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(sharedWishlistUrl)}`, "_blank");
+                }}
+              >
+                <Twitter className="w-4 h-4 mr-2" />
+                Twitter
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(sharedWishlistUrl)}`, "_blank");
+                }}
+              >
+                <Facebook className="w-4 h-4 mr-2" />
+                Facebook
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const subject = `Check out my wishlist on TailorsShop!`;
+                  const body = `I wanted to share my wishlist with you:\n\n${sharedWishlistUrl}`;
+                  window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                }}
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Email
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

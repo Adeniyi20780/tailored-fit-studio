@@ -22,6 +22,7 @@ import TailorStorePage from "./pages/TailorStorePage";
 import CustomerProfile from "./pages/CustomerProfile";
 import TailorsMarketplace from "./pages/TailorsMarketplace";
 import Wishlist from "./pages/Wishlist";
+import SharedWishlist from "./pages/SharedWishlist";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -114,6 +115,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/shared-wishlist/:shareCode" element={<SharedWishlist />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

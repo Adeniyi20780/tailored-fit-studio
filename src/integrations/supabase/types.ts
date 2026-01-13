@@ -284,6 +284,42 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_wishlists: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          product_ids: string[]
+          share_code: string
+          title: string | null
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          product_ids: string[]
+          share_code: string
+          title?: string | null
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          product_ids?: string[]
+          share_code?: string
+          title?: string | null
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       tailors: {
         Row: {
           banner_url: string | null
@@ -358,6 +394,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      wishlist_notifications: {
+        Row: {
+          created_at: string
+          email_notifications: boolean | null
+          id: string
+          notify_on_restock: boolean | null
+          notify_on_sale: boolean | null
+          product_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_notifications?: boolean | null
+          id?: string
+          notify_on_restock?: boolean | null
+          notify_on_sale?: boolean | null
+          product_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_notifications?: boolean | null
+          id?: string
+          notify_on_restock?: boolean | null
+          notify_on_sale?: boolean | null
+          product_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlist_notifications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wishlists: {
         Row: {
