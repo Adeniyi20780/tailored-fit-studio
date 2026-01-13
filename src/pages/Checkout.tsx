@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ShieldCheck, Loader2, CheckCircle, ShoppingCart, CreditCard } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Loader2, CheckCircle, ShoppingCart, CreditCard, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import MeasurementSelector from '@/components/checkout/MeasurementSelector';
@@ -13,6 +14,7 @@ import ShippingAddressForm, { ShippingAddress } from '@/components/checkout/Ship
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/hooks/useCart';
 import { useCreateOrder } from '@/hooks/useCreateOrder';
+import { useWallet } from '@/hooks/useWallet';
 import { Measurement } from '@/hooks/useCustomerMeasurements';
 import { CustomizationState, ProductCategory } from '@/types/customization';
 import { toast } from 'sonner';
@@ -48,6 +50,7 @@ export default function Checkout() {
   const { user } = useAuth();
   const createOrder = useCreateOrder();
   const { cartItems, clearCart } = useCart();
+  const { wallet, useWalletForPurchase, isProcessingPurchase } = useWallet();
   
   const [pendingData, setPendingData] = useState<PendingCustomization | null>(null);
   const [checkoutMode, setCheckoutMode] = useState<'cart' | 'single' | null>(null);
@@ -66,6 +69,7 @@ export default function Checkout() {
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderNumbers, setOrderNumbers] = useState<string[]>([]);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'wallet'>('card');
 
   // Fetch product details for cart items
   const { data: cartProducts = [] } = useQuery({
@@ -183,18 +187,27 @@ export default function Checkout() {
       return;
     }
 
+    const totalAmount = calculateTotal();
+    
+    // Check wallet balance if paying with wallet
+    if (paymentMethod === 'wallet') {
+      if (!wallet || wallet.balance < totalAmount) {
+        toast.error('Insufficient wallet balance');
+        return;
+      }
+    }
+
     setIsPlacingOrder(true);
 
     try {
       let items: Array<{ name: string; quantity: number; amount: number }> = [];
       let orderId: string | undefined;
       let orderNum: string | undefined;
-      let totalAmount: number;
       let currency: string = 'USD';
+      const createdOrderNumbers: string[] = [];
 
       if (checkoutMode === 'single' && pendingData) {
         // Single product checkout (from customization)
-        totalAmount = calculateSingleTotal();
         const order = await createOrder.mutateAsync({
           productId: pendingData.productId,
           tailorId: pendingData.tailorId,
@@ -208,6 +221,7 @@ export default function Checkout() {
 
         orderId = order.id;
         orderNum = order.order_number;
+        createdOrderNumbers.push(order.order_number);
         items = [{
           name: pendingData.productName,
           quantity: 1,
@@ -230,6 +244,7 @@ export default function Checkout() {
         orderId = firstOrder.id;
         orderNum = firstOrder.order_number;
         currency = firstItem.product.currency || 'USD';
+        createdOrderNumbers.push(firstOrder.order_number);
 
         // Create remaining orders
         if (cartItemsWithProducts.length > 1) {
@@ -245,10 +260,10 @@ export default function Checkout() {
               notes: notes || undefined,
             })
           );
-          await Promise.all(remainingPromises);
+          const remainingOrders = await Promise.all(remainingPromises);
+          remainingOrders.forEach(o => createdOrderNumbers.push(o.order_number));
         }
 
-        totalAmount = calculateCartTotal();
         items = cartItemsWithProducts.map(item => ({
           name: item.product.name,
           quantity: item.quantity,
@@ -258,23 +273,50 @@ export default function Checkout() {
         clearCart();
       }
 
-      // Create Stripe checkout session
-      const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payment', {
-        body: {
+      if (paymentMethod === 'wallet') {
+        // Pay with wallet balance
+        await useWalletForPurchase({
           amount: totalAmount,
-          currency,
           orderId,
-          orderNumber: orderNum,
-          items,
-        },
-      });
+          description: `Order ${orderNum}`,
+        });
 
-      if (paymentError || !paymentData?.url) {
-        throw new Error(paymentError?.message || 'Failed to create payment session');
+        // Update order status to confirmed
+        await supabase
+          .from('orders')
+          .update({ status: 'confirmed' })
+          .eq('id', orderId);
+
+        // Send order notification
+        await supabase.functions.invoke('send-order-notification', {
+          body: { orderId, orderNumber: orderNum },
+        });
+
+        // Clear pending customization
+        sessionStorage.removeItem('pendingCustomization');
+        
+        setOrderNumbers(createdOrderNumbers);
+        setOrderComplete(true);
+        toast.success('Order placed successfully with wallet credits!');
+      } else {
+        // Pay with card via Stripe
+        const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payment', {
+          body: {
+            amount: totalAmount,
+            currency,
+            orderId,
+            orderNumber: orderNum,
+            items,
+          },
+        });
+
+        if (paymentError || !paymentData?.url) {
+          throw new Error(paymentError?.message || 'Failed to create payment session');
+        }
+
+        // Redirect to Stripe Checkout
+        window.location.href = paymentData.url;
       }
-
-      // Redirect to Stripe Checkout
-      window.location.href = paymentData.url;
     } catch (error) {
       console.error('Order error:', error);
       toast.error('Failed to process order. Please try again.');
@@ -425,6 +467,43 @@ export default function Checkout() {
                 />
               </motion.section>
 
+              {/* Payment method section */}
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                className="bg-card rounded-xl border border-border p-6"
+              >
+                <Label className="font-display text-lg font-semibold">Payment Method</Label>
+                <RadioGroup
+                  value={paymentMethod}
+                  onValueChange={(v) => setPaymentMethod(v as 'card' | 'wallet')}
+                  className="mt-4 space-y-3"
+                >
+                  <div className="flex items-center space-x-3 p-3 rounded-lg border hover:border-primary/50 cursor-pointer">
+                    <RadioGroupItem value="card" id="card" />
+                    <Label htmlFor="card" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <CreditCard className="h-4 w-4" />
+                      Pay with Card
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3 p-3 rounded-lg border hover:border-primary/50 cursor-pointer">
+                    <RadioGroupItem value="wallet" id="wallet" disabled={!wallet || wallet.balance < calculateTotal()} />
+                    <Label htmlFor="wallet" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <Wallet className="h-4 w-4" />
+                      <span>Pay with Wallet</span>
+                      <span className="ml-auto text-sm text-muted-foreground">
+                        Balance: ${wallet?.balance?.toFixed(2) || '0.00'}
+                      </span>
+                    </Label>
+                  </div>
+                </RadioGroup>
+                {wallet && wallet.balance < calculateTotal() && paymentMethod === 'card' && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Add more credits to your wallet to pay with wallet balance
+                  </p>
+                )}
+              </motion.section>
               {/* Shipping address section */}
               <motion.section
                 initial={{ opacity: 0, y: 20 }}
@@ -463,13 +542,18 @@ export default function Checkout() {
               <div className="lg:hidden">
                 <Button
                   onClick={handlePlaceOrder}
-                  disabled={isPlacingOrder}
+                  disabled={isPlacingOrder || isProcessingPurchase}
                   className="w-full h-12 bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
                 >
-                  {isPlacingOrder ? (
+                  {isPlacingOrder || isProcessingPurchase ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Processing Payment...
+                      Processing...
+                    </>
+                  ) : paymentMethod === 'wallet' ? (
+                    <>
+                      <Wallet className="w-4 h-4" />
+                      Pay ${calculateTotal().toFixed(2)} with Wallet
                     </>
                   ) : (
                     <>
@@ -519,13 +603,18 @@ export default function Checkout() {
               
               <Button
                 onClick={handlePlaceOrder}
-                disabled={isPlacingOrder}
+                disabled={isPlacingOrder || isProcessingPurchase}
                 className="hidden lg:flex w-full h-12 bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
               >
-                {isPlacingOrder ? (
+                {isPlacingOrder || isProcessingPurchase ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing Payment...
+                    Processing...
+                  </>
+                ) : paymentMethod === 'wallet' ? (
+                  <>
+                    <Wallet className="w-4 h-4" />
+                    Pay with Wallet
                   </>
                 ) : (
                   <>
