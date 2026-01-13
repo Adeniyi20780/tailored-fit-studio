@@ -155,29 +155,32 @@ const ProductDetail = () => {
 
               {/* Tailor Info */}
               {tailor && (
-                <Card className="bg-muted/30">
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                      {tailor.logo_url ? (
-                        <img
-                          src={tailor.logo_url}
-                          alt={tailor.store_name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Store className="h-6 w-6 text-primary" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{tailor.store_name}</p>
-                      {tailor.rating && tailor.rating > 0 && (
-                        <p className="text-sm text-muted-foreground">
-                          ⭐ {tailor.rating.toFixed(1)} ({tailor.total_reviews} reviews)
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                <Link to={`/tailor/${tailor.store_slug}`}>
+                  <Card className="bg-muted/30 hover:border-primary/50 transition-colors cursor-pointer">
+                    <CardContent className="p-4 flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                        {tailor.logo_url ? (
+                          <img
+                            src={tailor.logo_url}
+                            alt={tailor.store_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Store className="h-6 w-6 text-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{tailor.store_name}</p>
+                        {tailor.rating && tailor.rating > 0 && (
+                          <p className="text-sm text-muted-foreground">
+                            ⭐ {tailor.rating.toFixed(1)} ({tailor.total_reviews} reviews)
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-sm text-primary">View Store →</span>
+                    </CardContent>
+                  </Card>
+                </Link>
               )}
 
               {/* Price */}
