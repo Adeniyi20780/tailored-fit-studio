@@ -1,6 +1,6 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Store, Sparkles, ShoppingBag, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Store, Sparkles, ShoppingBag, Loader2, AlertCircle, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -11,6 +11,9 @@ import ProductImageGallery from "@/components/product/ProductImageGallery";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
 import { ProductReviewsSection } from "@/components/reviews/ProductReviewsSection";
 import { useProduct } from "@/hooks/useProducts";
+import { useWishlist } from "@/hooks/useWishlist";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProductCategory } from "@/types/customization";
@@ -31,6 +34,9 @@ const categoryMap: Record<string, ProductCategory> = {
 const ProductDetail = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { isInWishlist, toggleWishlist, isToggling } = useWishlist();
 
   const { data: product, isLoading, error } = useProduct(productId || "");
 
@@ -57,6 +63,23 @@ const ProductDetail = () => {
       `/customize?category=${category}&name=${encodeURIComponent(product.name)}&productId=${product.id}&basePrice=${product.base_price}`
     );
   };
+
+  const handleWishlistClick = () => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to add items to your wishlist",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+    if (product) {
+      toggleWishlist(product.id);
+    }
+  };
+
+  const isWishlisted = product ? isInWishlist(product.id) : false;
 
   if (isLoading) {
     return (
@@ -147,11 +170,24 @@ const ProductDetail = () => {
               className="space-y-6"
             >
               {/* Category & Title */}
-              <div>
-                <Badge className="mb-3 capitalize">{product.category}</Badge>
-                <h1 className="font-display text-3xl lg:text-4xl font-bold text-foreground">
-                  {product.name}
-                </h1>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <Badge className="mb-3 capitalize">{product.category}</Badge>
+                  <h1 className="font-display text-3xl lg:text-4xl font-bold text-foreground">
+                    {product.name}
+                  </h1>
+                </div>
+                <button
+                  onClick={handleWishlistClick}
+                  disabled={isToggling}
+                  className={`shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 border ${
+                    isWishlisted 
+                      ? 'bg-red-500 border-red-500 text-white' 
+                      : 'bg-background border-border text-muted-foreground hover:text-red-500 hover:border-red-500'
+                  }`}
+                >
+                  <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
+                </button>
               </div>
 
               {/* Tailor Info */}
