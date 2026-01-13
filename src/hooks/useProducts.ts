@@ -34,10 +34,10 @@ export function useProduct(id: string) {
         .from('products')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data as Product;
+      return data as Product | null;
     },
     enabled: !!id,
   });
