@@ -21,6 +21,7 @@ import StoreSettings from "./pages/StoreSettings";
 import TailorStorePage from "./pages/TailorStorePage";
 import CustomerProfile from "./pages/CustomerProfile";
 import TailorsMarketplace from "./pages/TailorsMarketplace";
+import Wishlist from "./pages/Wishlist";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -102,6 +103,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CustomerProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/wishlist"
+              element={
+                <ProtectedRoute>
+                  <Wishlist />
                 </ProtectedRoute>
               }
             />
