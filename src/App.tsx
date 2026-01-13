@@ -19,6 +19,7 @@ import MyOrders from "./pages/MyOrders";
 import ProductDetail from "./pages/ProductDetail";
 import StoreSettings from "./pages/StoreSettings";
 import TailorStorePage from "./pages/TailorStorePage";
+import CustomerProfile from "./pages/CustomerProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -91,6 +92,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <MyOrders />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <CustomerProfile />
                 </ProtectedRoute>
               }
             />
