@@ -13,6 +13,7 @@ import StoreOrders from "./pages/StoreOrders";
 import StoreProductsNew from "./pages/StoreProductsNew";
 import Customize from "./pages/Customize";
 import Catalog from "./pages/Catalog";
+import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ const App = () => (
               }
             />
             <Route path="/customize" element={<Customize />} />
+            <Route path="/checkout" element={<Checkout />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
