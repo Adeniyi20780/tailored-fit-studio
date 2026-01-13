@@ -25,6 +25,7 @@ import Wishlist from "./pages/Wishlist";
 import SharedWishlist from "./pages/SharedWishlist";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import OrderTracking from "./pages/OrderTracking";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -124,6 +125,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <OrderTracking />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
                 </ProtectedRoute>
               }
             />
