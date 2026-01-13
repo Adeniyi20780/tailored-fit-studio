@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Scissors, ShoppingBag, User, LogOut, Package } from "lucide-react";
+import { Menu, X, Scissors, ShoppingBag, User, LogOut, Package, Store, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -24,9 +24,8 @@ const Header = () => {
 
   const navLinks = [
     { href: "/catalog", label: "Shop" },
-    { href: "/marketplace", label: "Browse Tailors" },
+    { href: "/tailors", label: "Browse Tailors" },
     { href: "/how-it-works", label: "How It Works" },
-    { href: "/for-tailors", label: "For Tailors" },
   ];
 
   return (
@@ -70,6 +69,12 @@ const Header = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem asChild>
+                    <Link to="/profile" className="cursor-pointer">
+                      <UserCircle className="w-4 h-4 mr-2" />
+                      My Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link to="/my-orders" className="cursor-pointer">
                       <Package className="w-4 h-4 mr-2" />
                       My Orders
@@ -78,11 +83,6 @@ const Header = () => {
                   <DropdownMenuItem asChild>
                     <Link to="/dashboard" className="cursor-pointer">
                       Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings" className="cursor-pointer">
-                      Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -137,6 +137,12 @@ const Header = () => {
                 <div className="flex flex-col gap-3 pt-4 border-t border-border">
                   {user ? (
                     <>
+                      <Link to="/profile" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="w-full justify-start">
+                          <UserCircle className="w-4 h-4 mr-2" />
+                          My Profile
+                        </Button>
+                      </Link>
                       <Link to="/my-orders" onClick={() => setIsOpen(false)}>
                         <Button variant="outline" className="w-full justify-start">
                           <Package className="w-4 h-4 mr-2" />
