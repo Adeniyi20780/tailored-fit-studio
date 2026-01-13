@@ -1,8 +1,11 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Palette, Ruler, Sparkles } from 'lucide-react';
+import { Palette, Ruler, Sparkles, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useWishlist } from '@/hooks/useWishlist';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import type { Product } from '@/hooks/useProducts';
 import type { ProductCategory } from '@/types/customization';
 
@@ -26,6 +29,9 @@ const categoryMap: Record<string, ProductCategory> = {
 
 export default function ProductCard({ product, index }: ProductCardProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { isInWishlist, toggleWishlist, isToggling } = useWishlist();
   
   const handleViewProduct = () => {
     navigate(`/product/${product.id}`);
@@ -37,9 +43,24 @@ export default function ProductCard({ product, index }: ProductCardProps) {
     navigate(`/customize?category=${category}&name=${encodeURIComponent(product.name)}&productId=${product.id}&basePrice=${product.base_price}`);
   };
 
+  const handleWishlistClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to add items to your wishlist",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+    toggleWishlist(product.id);
+  };
+
   const imageUrl = product.images?.[0] || '/placeholder.svg';
   const hasColors = product.colors && product.colors.length > 0;
   const hasFabrics = product.fabrics && product.fabrics.length > 0;
+  const isWishlisted = isInWishlist(product.id);
 
   return (
     <motion.div
@@ -58,6 +79,19 @@ export default function ProductCard({ product, index }: ProductCardProps) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
+        {/* Wishlist button */}
+        <button
+          onClick={handleWishlistClick}
+          disabled={isToggling}
+          className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${
+            isWishlisted 
+              ? 'bg-red-500 text-white' 
+              : 'bg-white/90 text-muted-foreground hover:text-red-500 hover:bg-white'
+          }`}
+        >
+          <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
+        </button>
+
         {/* Quick customize button on hover */}
         <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
           <Button
