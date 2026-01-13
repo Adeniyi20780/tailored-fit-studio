@@ -17,6 +17,7 @@ import Catalog from "./pages/Catalog";
 import Checkout from "./pages/Checkout";
 import MyOrders from "./pages/MyOrders";
 import ProductDetail from "./pages/ProductDetail";
+import StoreSettings from "./pages/StoreSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,14 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="tailor">
                   <StoreProducts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/store/settings"
+              element={
+                <ProtectedRoute requiredRole="tailor">
+                  <StoreSettings />
                 </ProtectedRoute>
               }
             />
