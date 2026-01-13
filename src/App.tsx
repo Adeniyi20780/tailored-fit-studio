@@ -20,6 +20,7 @@ import ProductDetail from "./pages/ProductDetail";
 import StoreSettings from "./pages/StoreSettings";
 import TailorStorePage from "./pages/TailorStorePage";
 import CustomerProfile from "./pages/CustomerProfile";
+import TailorsMarketplace from "./pages/TailorsMarketplace";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/catalog" element={<Catalog />} />
             <Route path="/product/:productId" element={<ProductDetail />} />
+            <Route path="/tailors" element={<TailorsMarketplace />} />
             <Route path="/tailor/:storeSlug" element={<TailorStorePage />} />
             <Route path="/auth" element={<Auth />} />
             <Route
