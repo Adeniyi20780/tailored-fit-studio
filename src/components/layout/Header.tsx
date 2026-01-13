@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Scissors, ShoppingBag, User, LogOut } from "lucide-react";
+import { Menu, X, Scissors, ShoppingBag, User, LogOut, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -70,6 +70,12 @@ const Header = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem asChild>
+                    <Link to="/my-orders" className="cursor-pointer">
+                      <Package className="w-4 h-4 mr-2" />
+                      My Orders
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link to="/dashboard" className="cursor-pointer">
                       Dashboard
                     </Link>
@@ -131,6 +137,12 @@ const Header = () => {
                 <div className="flex flex-col gap-3 pt-4 border-t border-border">
                   {user ? (
                     <>
+                      <Link to="/my-orders" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="w-full justify-start">
+                          <Package className="w-4 h-4 mr-2" />
+                          My Orders
+                        </Button>
+                      </Link>
                       <Link to="/dashboard" onClick={() => setIsOpen(false)}>
                         <Button variant="outline" className="w-full justify-start">
                           <User className="w-4 h-4 mr-2" />
