@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Store from "./pages/Store";
 import StoreOrders from "./pages/StoreOrders";
 import StoreProductsNew from "./pages/StoreProductsNew";
+import StoreProducts from "./pages/StoreProducts";
 import Customize from "./pages/Customize";
 import Catalog from "./pages/Catalog";
 import Checkout from "./pages/Checkout";
@@ -58,6 +59,14 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="tailor">
                   <StoreProductsNew />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/store/products"
+              element={
+                <ProtectedRoute requiredRole="tailor">
+                  <StoreProducts />
                 </ProtectedRoute>
               }
             />
