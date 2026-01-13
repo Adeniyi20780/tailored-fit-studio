@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Scissors, Mail, Lock, User, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Scissors, Mail, Lock, User, ArrowLeft, Eye, EyeOff, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   const { user, signIn, signUp } = useAuth();
   const { toast } = useToast();
 
@@ -40,11 +41,7 @@ const Auth = () => {
             variant: "destructive",
           });
         } else {
-          toast({
-            title: "Account created!",
-            description: "Welcome to TailorsShop. You can now sign in.",
-          });
-          setMode("signin");
+          setShowVerificationMessage(true);
         }
       } else {
         const { error } = await signIn(email, password);
@@ -73,33 +70,66 @@ const Auth = () => {
           Back to home
         </Link>
 
-        {/* Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-card border border-border rounded-2xl p-8 shadow-elegant"
-        >
-          {/* Logo */}
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-              <Scissors className="w-6 h-6 text-primary-foreground" />
+        {/* Email Verification Message */}
+        {showVerificationMessage ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-card border border-border rounded-2xl p-8 shadow-elegant text-center"
+          >
+            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
             </div>
-            <span className="font-display text-2xl font-semibold text-foreground">
-              TailorsShop
-            </span>
-          </div>
-
-          {/* Title */}
-          <div className="text-center mb-8">
-            <h1 className="font-display text-2xl font-semibold text-foreground mb-2">
-              {mode === "signin" ? "Welcome back" : "Create your account"}
-            </h1>
-            <p className="text-muted-foreground">
-              {mode === "signin"
-                ? "Sign in to access your dashboard"
-                : "Join the world's best tailoring marketplace"}
+            <h2 className="font-display text-2xl font-semibold text-foreground mb-3">
+              Check your email
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              We've sent a verification link to <span className="font-medium text-foreground">{email}</span>. 
+              Please click the link to verify your account.
             </p>
-          </div>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Didn't receive the email? Check your spam folder or
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowVerificationMessage(false);
+                  setMode("signin");
+                }}
+              >
+                Back to Sign In
+              </Button>
+            </div>
+          </motion.div>
+        ) : (
+          /* Card */
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-card border border-border rounded-2xl p-8 shadow-elegant"
+          >
+            {/* Logo */}
+            <div className="flex items-center justify-center gap-3 mb-8">
+              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
+                <Scissors className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <span className="font-display text-2xl font-semibold text-foreground">
+                TailorsShop
+              </span>
+            </div>
+
+            {/* Title */}
+            <div className="text-center mb-8">
+              <h1 className="font-display text-2xl font-semibold text-foreground mb-2">
+                {mode === "signin" ? "Welcome back" : "Create your account"}
+              </h1>
+              <p className="text-muted-foreground">
+                {mode === "signin"
+                  ? "Sign in to access your dashboard"
+                  : "Join the world's best tailoring marketplace"}
+              </p>
+            </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -179,21 +209,22 @@ const Auth = () => {
             </Button>
           </form>
 
-          {/* Toggle mode */}
-          <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">
-              {mode === "signin"
-                ? "Don't have an account? "
-                : "Already have an account? "}
-            </span>
-            <button
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-              className="text-accent hover:text-accent/80 font-medium transition-colors"
-            >
-              {mode === "signin" ? "Sign up" : "Sign in"}
-            </button>
-          </div>
-        </motion.div>
+            {/* Toggle mode */}
+            <div className="mt-6 text-center text-sm">
+              <span className="text-muted-foreground">
+                {mode === "signin"
+                  ? "Don't have an account? "
+                  : "Already have an account? "}
+              </span>
+              <button
+                onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+                className="text-accent hover:text-accent/80 font-medium transition-colors"
+              >
+                {mode === "signin" ? "Sign up" : "Sign in"}
+              </button>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
