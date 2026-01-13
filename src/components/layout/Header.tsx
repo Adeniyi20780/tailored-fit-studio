@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Scissors, ShoppingBag, User, LogOut, Package, Store, UserCircle } from "lucide-react";
+import { Menu, X, Scissors, Heart, User, LogOut, Package, Store, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWishlist } from "@/hooks/useWishlist";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +16,9 @@ import {
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
+  const wishlistCount = wishlistItems.length;
 
   const handleSignOut = async () => {
     await signOut();
@@ -57,9 +60,16 @@ const Header = () => {
 
           {/* Desktop Actions */}
           <div className="hidden lg:flex items-center gap-4">
-            <Button variant="ghost" size="icon">
-              <ShoppingBag className="w-5 h-5" />
-            </Button>
+            <Link to="/wishlist" className="relative">
+              <Button variant="ghost" size="icon">
+                <Heart className="w-5 h-5" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center">
+                    {wishlistCount > 99 ? "99+" : wishlistCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -135,6 +145,17 @@ const Header = () => {
                   </Link>
                 ))}
                 <div className="flex flex-col gap-3 pt-4 border-t border-border">
+                  <Link to="/wishlist" onClick={() => setIsOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start relative">
+                      <Heart className="w-4 h-4 mr-2" />
+                      My Wishlist
+                      {wishlistCount > 0 && (
+                        <span className="ml-auto bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded-full">
+                          {wishlistCount}
+                        </span>
+                      )}
+                    </Button>
+                  </Link>
                   {user ? (
                     <>
                       <Link to="/profile" onClick={() => setIsOpen(false)}>

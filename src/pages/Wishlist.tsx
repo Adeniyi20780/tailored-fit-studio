@@ -1,12 +1,29 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, Trash2, Sparkles, ShoppingBag, Loader2 } from "lucide-react";
+import { Heart, Trash2, Sparkles, ShoppingBag, Loader2, Share2, Copy, Check, Twitter, Facebook, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useWishlist } from "@/hooks/useWishlist";
+import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProductCategory } from "@/types/customization";
@@ -26,6 +43,10 @@ const categoryMap: Record<string, ProductCategory> = {
 
 const Wishlist = () => {
   const { wishlistItems, isLoading: wishlistLoading, removeFromWishlist, isToggling } = useWishlist();
+  const { toast } = useToast();
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareProduct, setShareProduct] = useState<typeof products[0] | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Fetch product details for wishlist items
   const { data: products = [], isLoading: productsLoading } = useQuery({
@@ -50,6 +71,52 @@ const Wishlist = () => {
   const getCustomizeUrl = (product: typeof products[0]) => {
     const category = categoryMap[product.category] || "shirts";
     return `/customize?category=${category}&name=${encodeURIComponent(product.name)}&productId=${product.id}&basePrice=${product.base_price}`;
+  };
+
+  const getProductUrl = (productId: string) => {
+    return `${window.location.origin}/product/${productId}`;
+  };
+
+  const handleCopyLink = async (product: typeof products[0]) => {
+    const url = getProductUrl(product.id);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast({
+        title: "Link copied!",
+        description: "Product link has been copied to your clipboard.",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({
+        title: "Failed to copy",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShareTwitter = (product: typeof products[0]) => {
+    const url = getProductUrl(product.id);
+    const text = `Check out this ${product.name} on TailorsShop!`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank");
+  };
+
+  const handleShareFacebook = (product: typeof products[0]) => {
+    const url = getProductUrl(product.id);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, "_blank");
+  };
+
+  const handleShareEmail = (product: typeof products[0]) => {
+    const url = getProductUrl(product.id);
+    const subject = `Check out this ${product.name} on TailorsShop!`;
+    const body = `I found this amazing product and thought you might like it:\n\n${product.name}\n${url}`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
+  const openShareDialog = (product: typeof products[0]) => {
+    setShareProduct(product);
+    setShareDialogOpen(true);
   };
 
   return (
@@ -161,6 +228,32 @@ const Wishlist = () => {
                             Customize
                           </Link>
                         </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Share2 className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleCopyLink(product)}>
+                              <Copy className="w-4 h-4 mr-2" />
+                              Copy Link
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleShareTwitter(product)}>
+                              <Twitter className="w-4 h-4 mr-2" />
+                              Share on Twitter
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleShareFacebook(product)}>
+                              <Facebook className="w-4 h-4 mr-2" />
+                              Share on Facebook
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleShareEmail(product)}>
+                              <Mail className="w-4 h-4 mr-2" />
+                              Share via Email
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <Button
                           variant="outline"
                           size="sm"
@@ -179,6 +272,77 @@ const Wishlist = () => {
           )}
         </section>
       </main>
+
+      {/* Share Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share Product</DialogTitle>
+            <DialogDescription>
+              Share this product with friends and family
+            </DialogDescription>
+          </DialogHeader>
+          {shareProduct && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <img
+                  src={shareProduct.images?.[0] || "/placeholder.svg"}
+                  alt={shareProduct.name}
+                  className="w-16 h-16 object-cover rounded"
+                />
+                <div>
+                  <p className="font-medium">{shareProduct.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {shareProduct.currency || "$"}{shareProduct.base_price.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={getProductUrl(shareProduct.id)}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => handleCopyLink(shareProduct)}
+                >
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <div className="flex justify-center gap-4">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => handleShareTwitter(shareProduct)}
+                  className="flex-1"
+                >
+                  <Twitter className="w-5 h-5 mr-2" />
+                  Twitter
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => handleShareFacebook(shareProduct)}
+                  className="flex-1"
+                >
+                  <Facebook className="w-5 h-5 mr-2" />
+                  Facebook
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => handleShareEmail(shareProduct)}
+                  className="flex-1"
+                >
+                  <Mail className="w-5 h-5 mr-2" />
+                  Email
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>
