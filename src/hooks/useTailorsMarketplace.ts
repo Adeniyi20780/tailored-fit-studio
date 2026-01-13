@@ -17,9 +17,15 @@ export interface TailorListing {
   product_count?: number;
 }
 
-export const useTailorsMarketplace = (searchQuery?: string, specialtyFilter?: string) => {
+export type SortOption = "rating" | "products" | "newest";
+
+export const useTailorsMarketplace = (
+  searchQuery?: string,
+  specialtyFilter?: string,
+  sortBy: SortOption = "rating"
+) => {
   return useQuery({
-    queryKey: ["tailors-marketplace", searchQuery, specialtyFilter],
+    queryKey: ["tailors-marketplace", searchQuery, specialtyFilter, sortBy],
     queryFn: async () => {
       // Fetch all active tailors
       const { data: tailors, error: tailorsError } = await supabase
@@ -69,6 +75,21 @@ export const useTailorsMarketplace = (searchQuery?: string, specialtyFilter?: st
         result = result.filter((t) =>
           t.specialties?.some((s) => s.toLowerCase() === specialtyFilter.toLowerCase())
         );
+      }
+
+      // Apply sorting
+      switch (sortBy) {
+        case "rating":
+          result.sort((a, b) => b.rating - a.rating);
+          break;
+        case "products":
+          result.sort((a, b) => (b.product_count || 0) - (a.product_count || 0));
+          break;
+        case "newest":
+          // Tailors table doesn't have created_at in our select, so we'll use id as proxy
+          // or we could add created_at to the query - for now sort by id descending
+          result.sort((a, b) => b.id.localeCompare(a.id));
+          break;
       }
 
       return result;

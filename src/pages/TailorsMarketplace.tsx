@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Store, SlidersHorizontal, Loader2 } from "lucide-react";
+import { Search, Store, SlidersHorizontal, ArrowUpDown, Loader2 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Input } from "@/components/ui/input";
@@ -13,14 +13,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TailorCard } from "@/components/marketplace/TailorCard";
-import { useTailorsMarketplace, useAllSpecialties } from "@/hooks/useTailorsMarketplace";
+import { useTailorsMarketplace, useAllSpecialties, type SortOption } from "@/hooks/useTailorsMarketplace";
 
 const TailorsMarketplace = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
+  const [sortBy, setSortBy] = useState<SortOption>("rating");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const { data: tailors = [], isLoading } = useTailorsMarketplace(debouncedSearch, specialtyFilter);
+  const { data: tailors = [], isLoading } = useTailorsMarketplace(debouncedSearch, specialtyFilter, sortBy);
   const { data: specialties = [] } = useAllSpecialties();
 
   // Simple debounce for search
@@ -62,7 +63,7 @@ const TailorsMarketplace = () => {
                   />
                 </div>
                 <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
-                  <SelectTrigger className="w-full sm:w-[200px] h-12">
+                  <SelectTrigger className="w-full sm:w-[180px] h-12">
                     <SlidersHorizontal className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="All Specialties" />
                   </SelectTrigger>
@@ -73,6 +74,17 @@ const TailorsMarketplace = () => {
                         {specialty}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                  <SelectTrigger className="w-full sm:w-[160px] h-12">
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rating">Top Rated</SelectItem>
+                    <SelectItem value="products">Most Products</SelectItem>
+                    <SelectItem value="newest">Newest</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -99,13 +111,14 @@ const TailorsMarketplace = () => {
                   ? "Try adjusting your search or filters"
                   : "Check back soon for new tailors"}
               </p>
-              {(searchQuery || specialtyFilter !== "all") && (
+              {(searchQuery || specialtyFilter !== "all" || sortBy !== "rating") && (
                 <Button
                   variant="outline"
                   onClick={() => {
                     setSearchQuery("");
                     setDebouncedSearch("");
                     setSpecialtyFilter("all");
+                    setSortBy("rating");
                   }}
                 >
                   Clear Filters
