@@ -8,6 +8,7 @@ import OrderCompletionRate from "@/components/store/OrderCompletionRate";
 import QuickActions from "@/components/store/QuickActions";
 import CustomerDemographics from "@/components/store/CustomerDemographics";
 import TailorRefundsSection from "@/components/store/TailorRefundsSection";
+import { TailorAlterationsSection } from "@/components/store/TailorAlterationsSection";
 import Header from "@/components/layout/Header";
 import {
   DollarSign,
@@ -124,10 +125,11 @@ const Store = () => {
           <CustomerDemographics data={customerDemographics} isLoading={isLoading} />
         </div>
 
-        {/* Refund Requests */}
+        {/* Refunds and Alterations */}
         {tailor?.id && (
-          <div className="mb-8">
+          <div className="grid gap-6 lg:grid-cols-2 mb-8">
             <TailorRefundsSection tailorId={tailor.id} />
+            <TailorAlterationsSection tailorId={tailor.id} />
           </div>
         )}
 

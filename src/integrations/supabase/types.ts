@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      alteration_tickets: {
+        Row: {
+          created_at: string
+          customer_id: string
+          description: string
+          id: string
+          images: string[] | null
+          issue_type: string
+          order_id: string
+          resolution: string | null
+          status: string
+          tailor_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          description: string
+          id?: string
+          images?: string[] | null
+          issue_type: string
+          order_id: string
+          resolution?: string | null
+          status?: string
+          tailor_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          description?: string
+          id?: string
+          images?: string[] | null
+          issue_type?: string
+          order_id?: string
+          resolution?: string | null
+          status?: string
+          tailor_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alteration_tickets_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alteration_tickets_tailor_id_fkey"
+            columns: ["tailor_id"]
+            isOneToOne: false
+            referencedRelation: "tailors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cart_items: {
         Row: {
           created_at: string

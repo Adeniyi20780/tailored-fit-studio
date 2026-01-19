@@ -26,6 +26,8 @@ import SharedWishlist from "./pages/SharedWishlist";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import OrderTracking from "./pages/OrderTracking";
 import AdminDashboard from "./pages/AdminDashboard";
+import PerfectFitGuarantee from "./pages/PerfectFitGuarantee";
+import BecomeTailor from "./pages/BecomeTailor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -133,6 +135,15 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/perfect-fit-guarantee" element={<PerfectFitGuarantee />} />
+            <Route
+              path="/become-a-tailor"
+              element={
+                <ProtectedRoute>
+                  <BecomeTailor />
                 </ProtectedRoute>
               }
             />

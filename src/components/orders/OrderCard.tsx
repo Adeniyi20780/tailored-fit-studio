@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { Package, Calendar, MapPin, ChevronRight, Download, Eye, RefreshCw } from "lucide-react";
+import { Package, Calendar, MapPin, ChevronRight, Download, Eye, RefreshCw, Scissors } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import OrderStatusTracker from "./OrderStatusTracker";
 import { generateOrderReceipt } from "@/lib/receiptGenerator";
 import { toast } from "sonner";
 import RefundRequestModal from "@/components/refunds/RefundRequestModal";
+import { AlterationRequestModal } from "@/components/alterations/AlterationRequestModal";
 
 interface OrderCardProps {
   order: CustomerOrder;
@@ -43,9 +44,11 @@ const getStatusBadgeColor = (status: string) => {
 const OrderCard = ({ order, onClick, showTracker = true }: OrderCardProps) => {
   const navigate = useNavigate();
   const [showRefundModal, setShowRefundModal] = useState(false);
+  const [showAlterationModal, setShowAlterationModal] = useState(false);
   const shippingAddress = order.shipping_address as Record<string, string> | null;
 
   const canRequestRefund = ["delivered", "shipped", "in_progress"].includes(order.status);
+  const canRequestAlteration = order.status === "delivered";
 
   const handleDownloadReceipt = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -181,6 +184,19 @@ const OrderCard = ({ order, onClick, showTracker = true }: OrderCardProps) => {
               Refund
             </Button>
           )}
+          {canRequestAlteration && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAlterationModal(true);
+              }}
+            >
+              <Scissors className="w-4 h-4 mr-2" />
+              Alteration
+            </Button>
+          )}
         </div>
       </CardContent>
 
@@ -196,6 +212,17 @@ const OrderCard = ({ order, onClick, showTracker = true }: OrderCardProps) => {
           status: order.status,
         }}
       />
+
+      {/* Alteration Modal */}
+      {order.tailor_id && (
+        <AlterationRequestModal
+          open={showAlterationModal}
+          onOpenChange={setShowAlterationModal}
+          orderId={order.id}
+          tailorId={order.tailor_id}
+          orderNumber={order.order_number}
+        />
+      )}
     </Card>
   );
 };
