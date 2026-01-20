@@ -23,6 +23,28 @@ export interface AlterationTicket {
   };
 }
 
+const sendAlterationNotification = async (params: {
+  ticketId: string;
+  customerEmail: string;
+  customerName: string;
+  orderNumber: string;
+  productName: string;
+  status: "submitted" | "in_progress" | "completed" | "rejected";
+  issueType: string;
+  resolution?: string;
+}) => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    await supabase.functions.invoke("send-alteration-notification", {
+      body: params,
+    });
+  } catch (error) {
+    console.error("Failed to send alteration notification:", error);
+  }
+};
+
 export const useCustomerAlterationTickets = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -59,10 +81,33 @@ export const useCustomerAlterationTickets = () => {
           ...ticket,
           customer_id: user!.id,
         })
-        .select()
+        .select(`
+          *,
+          order:orders(order_number, product:products(name))
+        `)
         .single();
 
       if (error) throw error;
+
+      // Send email notification for new ticket
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email, full_name")
+        .eq("user_id", user!.id)
+        .single();
+
+      if (profile?.email) {
+        sendAlterationNotification({
+          ticketId: data.id,
+          customerEmail: profile.email,
+          customerName: profile.full_name || "Customer",
+          orderNumber: data.order?.order_number || "",
+          productName: data.order?.product?.name || "",
+          status: "submitted",
+          issueType: ticket.issue_type,
+        });
+      }
+
       return data;
     },
     onSuccess: () => {
@@ -92,13 +137,13 @@ export const useTailorAlterationTickets = (tailorId: string | undefined) => {
         .from("alteration_tickets")
         .select(`
           *,
-          order:orders(order_number, product:products(name))
+          order:orders(order_number, customer_id, product:products(name))
         `)
         .eq("tailor_id", tailorId!)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as AlterationTicket[];
+      return data as (AlterationTicket & { order?: { customer_id?: string } })[];
     },
     enabled: !!tailorId,
   });
@@ -117,10 +162,44 @@ export const useTailorAlterationTickets = (tailorId: string | undefined) => {
         .from("alteration_tickets")
         .update({ status, resolution })
         .eq("id", ticketId)
-        .select()
+        .select(`
+          *,
+          order:orders(order_number, customer_id, product:products(name))
+        `)
         .single();
 
       if (error) throw error;
+
+      // Send email notification for status update
+      if (data.order?.customer_id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("email, full_name")
+          .eq("user_id", data.order.customer_id)
+          .single();
+
+        if (profile?.email) {
+          const statusMap: Record<string, "in_progress" | "completed" | "rejected"> = {
+            in_progress: "in_progress",
+            completed: "completed",
+            rejected: "rejected",
+          };
+
+          if (statusMap[status]) {
+            sendAlterationNotification({
+              ticketId: data.id,
+              customerEmail: profile.email,
+              customerName: profile.full_name || "Customer",
+              orderNumber: data.order?.order_number || "",
+              productName: data.order?.product?.name || "",
+              status: statusMap[status],
+              issueType: data.issue_type,
+              resolution,
+            });
+          }
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
