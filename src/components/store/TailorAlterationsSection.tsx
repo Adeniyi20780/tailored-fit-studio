@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Scissors, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2, Scissors, CheckCircle, Clock, XCircle, Image as ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 
@@ -34,6 +35,8 @@ export const TailorAlterationsSection = ({ tailorId }: TailorAlterationsSectionP
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
   const [newStatus, setNewStatus] = useState("");
   const [resolution, setResolution] = useState("");
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
 
   const handleUpdate = async (ticketId: string) => {
     await updateTicket.mutateAsync({
@@ -44,6 +47,11 @@ export const TailorAlterationsSection = ({ tailorId }: TailorAlterationsSectionP
     setSelectedTicket(null);
     setNewStatus("");
     setResolution("");
+  };
+
+  const openImageModal = (images: string[]) => {
+    setSelectedImages(images);
+    setImageModalOpen(true);
   };
 
   if (isLoading) {
@@ -104,6 +112,20 @@ export const TailorAlterationsSection = ({ tailorId }: TailorAlterationsSectionP
                   <p className="text-sm text-muted-foreground">
                     {ticket.description}
                   </p>
+
+                  {ticket.images && ticket.images.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openImageModal(ticket.images!)}
+                        className="gap-1"
+                      >
+                        <ImageIcon className="h-3 w-3" />
+                        View {ticket.images.length} Photo{ticket.images.length > 1 ? "s" : ""}
+                      </Button>
+                    </div>
+                  )}
 
                   {ticket.resolution && (
                     <div className="bg-muted/50 p-3 rounded text-sm">
@@ -173,6 +195,32 @@ export const TailorAlterationsSection = ({ tailorId }: TailorAlterationsSectionP
           </div>
         )}
       </CardContent>
+
+      {/* Image Modal */}
+      <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Alteration Photos</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+            {selectedImages.map((url, index) => (
+              <a
+                key={index}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="aspect-square rounded-lg overflow-hidden border hover:opacity-90 transition-opacity"
+              >
+                <img
+                  src={url}
+                  alt={`Alteration photo ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </a>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

@@ -4,21 +4,17 @@ import { Scissors, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
 const Footer = () => {
   const footerLinks = {
     Marketplace: [
-      { label: "Browse Tailors", href: "/marketplace" },
-      { label: "Featured Collections", href: "/collections" },
-      { label: "New Arrivals", href: "/new" },
-      { label: "AI Measurement", href: "/measurement" },
+      { label: "Browse Tailors", href: "/tailors" },
+      { label: "Shop Catalog", href: "/catalog" },
+      { label: "Perfect Fit Guarantee", href: "/perfect-fit-guarantee" },
     ],
     "For Tailors": [
-      { label: "Start Selling", href: "/for-tailors" },
+      { label: "Become a Tailor", href: "/become-a-tailor" },
       { label: "Seller Dashboard", href: "/dashboard" },
-      { label: "Pricing", href: "/pricing" },
-      { label: "Success Stories", href: "/stories" },
+      { label: "My Store", href: "/store" },
     ],
     Company: [
       { label: "About Us", href: "/about" },
-      { label: "Careers", href: "/careers" },
-      { label: "Press", href: "/press" },
       { label: "Contact", href: "/contact" },
     ],
     Support: [
