@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { User, Mail, Phone, Calendar, Package, Loader2, Wallet, Bell } from "lucide-react";
+import { User, Mail, Phone, Calendar, Package, Loader2, Wallet, Bell, Scissors } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 
@@ -30,6 +30,7 @@ import { useCustomerOrders } from "@/hooks/useCustomerOrders";
 import { useAuth } from "@/contexts/AuthContext";
 import { WalletCard } from "@/components/wallet/WalletCard";
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
+import { CustomerAlterationsSection } from "@/components/alterations/CustomerAlterationsSection";
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Name must be at least 2 characters").max(100),
@@ -138,6 +139,10 @@ const CustomerProfile = () => {
               <TabsTrigger value="wallet" className="gap-2">
                 <Wallet className="h-4 w-4" />
                 Wallet
+              </TabsTrigger>
+              <TabsTrigger value="alterations" className="gap-2">
+                <Scissors className="h-4 w-4" />
+                Alterations
               </TabsTrigger>
               <TabsTrigger value="notifications" className="gap-2">
                 <Bell className="h-4 w-4" />
@@ -361,6 +366,11 @@ const CustomerProfile = () => {
             {/* Wallet Tab */}
             <TabsContent value="wallet">
               <WalletCard />
+            </TabsContent>
+
+            {/* Alterations Tab */}
+            <TabsContent value="alterations">
+              <CustomerAlterationsSection />
             </TabsContent>
 
             {/* Notifications Tab */}

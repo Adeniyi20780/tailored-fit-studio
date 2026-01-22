@@ -1,18 +1,14 @@
-import { useTailorAlterationTickets } from "@/hooks/useAlterationTickets";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, Scissors, CheckCircle, Clock, XCircle, Image as ImageIcon } from "lucide-react";
-import { useState } from "react";
 import { format } from "date-fns";
 import { AlterationChatDrawer } from "@/components/chat/AlterationChatDrawer";
-
-interface TailorAlterationsSectionProps {
-  tailorId: string;
-}
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode }> = {
   pending: { label: "Pending", variant: "secondary", icon: <Clock className="h-3 w-3" /> },
@@ -31,24 +27,93 @@ const issueTypeLabels: Record<string, string> = {
   other: "Other issue",
 };
 
-export const TailorAlterationsSection = ({ tailorId }: TailorAlterationsSectionProps) => {
-  const { tickets, isLoading, updateTicket, isUpdating } = useTailorAlterationTickets(tailorId);
-  const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
-  const [newStatus, setNewStatus] = useState("");
-  const [resolution, setResolution] = useState("");
+interface AlterationTicket {
+  id: string;
+  order_id: string;
+  issue_type: string;
+  description: string;
+  status: string;
+  resolution: string | null;
+  images: string[] | null;
+  created_at: string;
+  order: {
+    order_number: string;
+    product: {
+      name: string;
+    } | null;
+  } | null;
+  tailor: {
+    store_name: string;
+  } | null;
+}
+
+export const CustomerAlterationsSection = () => {
+  const { user } = useAuth();
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
 
-  const handleUpdate = async (ticketId: string) => {
-    await updateTicket.mutateAsync({
-      ticketId,
-      status: newStatus,
-      resolution: resolution || undefined,
-    });
-    setSelectedTicket(null);
-    setNewStatus("");
-    setResolution("");
-  };
+  const { data: tickets, isLoading } = useQuery({
+    queryKey: ["customer-alterations", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from("alteration_tickets")
+        .select(`
+          id,
+          order_id,
+          issue_type,
+          description,
+          status,
+          resolution,
+          images,
+          created_at,
+          tailor_id
+        `)
+        .eq("customer_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch related order and tailor data
+      const ticketsWithDetails = await Promise.all(
+        data.map(async (ticket) => {
+          // Fetch order details
+          const { data: orderData } = await supabase
+            .from("orders")
+            .select("order_number, product_id")
+            .eq("id", ticket.order_id)
+            .maybeSingle();
+
+          let productData = null;
+          if (orderData?.product_id) {
+            const { data: product } = await supabase
+              .from("products")
+              .select("name")
+              .eq("id", orderData.product_id)
+              .maybeSingle();
+            productData = product;
+          }
+
+          // Fetch tailor details
+          const { data: tailorData } = await supabase
+            .from("tailors")
+            .select("store_name")
+            .eq("id", ticket.tailor_id)
+            .maybeSingle();
+
+          return {
+            ...ticket,
+            order: orderData ? { ...orderData, product: productData } : null,
+            tailor: tailorData,
+          };
+        })
+      );
+
+      return ticketsWithDetails as AlterationTicket[];
+    },
+    enabled: !!user,
+  });
 
   const openImageModal = (images: string[]) => {
     setSelectedImages(images);
@@ -57,9 +122,11 @@ export const TailorAlterationsSection = ({ tailorId }: TailorAlterationsSectionP
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
     );
   }
 
@@ -68,10 +135,10 @@ export const TailorAlterationsSection = ({ tailorId }: TailorAlterationsSectionP
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Scissors className="h-5 w-5" />
-          Alteration Requests
+          My Alteration Requests
         </CardTitle>
         <CardDescription>
-          Manage fit adjustment requests from customers
+          Track your fit adjustment requests and communicate with tailors
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -83,7 +150,6 @@ export const TailorAlterationsSection = ({ tailorId }: TailorAlterationsSectionP
           <div className="space-y-4">
             {tickets.map((ticket) => {
               const status = statusConfig[ticket.status] || statusConfig.pending;
-              const isEditing = selectedTicket === ticket.id;
 
               return (
                 <div
@@ -93,10 +159,10 @@ export const TailorAlterationsSection = ({ tailorId }: TailorAlterationsSectionP
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-medium">
-                        Order: {ticket.order?.order_number}
+                        Order: {ticket.order?.order_number || "N/A"}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {ticket.order?.product?.name}
+                        {ticket.order?.product?.name || "Product"} • {ticket.tailor?.store_name || "Tailor"}
                       </p>
                     </div>
                     <Badge variant={status.variant} className="flex items-center gap-1">
@@ -135,69 +201,17 @@ export const TailorAlterationsSection = ({ tailorId }: TailorAlterationsSectionP
                     </div>
                   )}
 
-                  <p className="text-xs text-muted-foreground">
-                    Submitted {format(new Date(ticket.created_at), "MMM d, yyyy")}
-                  </p>
-
-                  {isEditing ? (
-                    <div className="space-y-3 pt-2 border-t">
-                      <Select value={newStatus} onValueChange={setNewStatus}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Update status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="in_progress">In Progress</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="rejected">Rejected</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Textarea
-                        placeholder="Add resolution notes..."
-                        value={resolution}
-                        onChange={(e) => setResolution(e.target.value)}
-                        rows={2}
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => handleUpdate(ticket.id)}
-                          disabled={!newStatus || isUpdating}
-                        >
-                          {isUpdating && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-                          Save
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedTicket(null);
-                            setNewStatus("");
-                            setResolution("");
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      {ticket.status === "pending" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setSelectedTicket(ticket.id)}
-                        >
-                          Update Status
-                        </Button>
-                      )}
-                      <AlterationChatDrawer
-                        ticketId={ticket.id}
-                        ticketNumber={ticket.order?.order_number}
-                        senderType="tailor"
-                        otherPartyName="Customer"
-                      />
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      Submitted {format(new Date(ticket.created_at), "MMM d, yyyy")}
+                    </p>
+                    <AlterationChatDrawer
+                      ticketId={ticket.id}
+                      ticketNumber={ticket.order?.order_number}
+                      senderType="customer"
+                      otherPartyName={ticket.tailor?.store_name}
+                    />
+                  </div>
                 </div>
               );
             })}
