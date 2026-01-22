@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Scissors, Heart, User, LogOut, Package, Store, UserCircle, Shield } from "lucide-react";
+import { Menu, X, Scissors, Heart, User, LogOut, Package, Store, UserCircle, Shield, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWishlist } from "@/hooks/useWishlist";
+import { useNotifications } from "@/hooks/useNotifications";
 import CartDrawer from "@/components/cart/CartDrawer";
 import {
   DropdownMenu,
@@ -20,6 +21,7 @@ const Header = () => {
   const { user, signOut } = useAuth();
   const { isAdmin } = useUserRole();
   const { wishlistItems } = useWishlist();
+  const { unreadCount: notificationCount } = useNotifications();
   const navigate = useNavigate();
   const wishlistCount = wishlistItems.length;
 
@@ -74,6 +76,18 @@ const Header = () => {
                 )}
               </Button>
             </Link>
+            {user && (
+              <Link to="/notifications" className="relative">
+                <Button variant="ghost" size="icon">
+                  <Bell className="w-5 h-5" />
+                  {notificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center">
+                      {notificationCount > 99 ? "99+" : notificationCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+            )}
             <CartDrawer />
             {user ? (
               <DropdownMenu>
@@ -183,13 +197,24 @@ const Header = () => {
                           My Orders
                         </Button>
                       </Link>
+                      <Link to="/notifications" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="w-full justify-start relative">
+                          <Bell className="w-4 h-4 mr-2" />
+                          Notifications
+                          {notificationCount > 0 && (
+                            <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-bold px-2 py-0.5 rounded-full">
+                              {notificationCount}
+                            </span>
+                          )}
+                        </Button>
+                      </Link>
                       <Link to="/dashboard" onClick={() => setIsOpen(false)}>
                         <Button variant="outline" className="w-full justify-start">
                           <User className="w-4 h-4 mr-2" />
                           Dashboard
                         </Button>
                       </Link>
-                      <Button 
+                      <Button
                         variant="ghost" 
                         className="w-full justify-start text-destructive"
                         onClick={() => {

@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import OrderStatusTracker from "@/components/orders/OrderStatusTracker";
+import { OrderTimeline } from "@/components/orders/OrderTimeline";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -444,32 +445,7 @@ export default function OrderTracking() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {ORDER_STATUS_STEPS.slice(0, currentStatusIndex + 1).reverse().map((step, idx) => {
-                      const isLatest = idx === 0;
-                      return (
-                        <div key={step.value} className="flex gap-4">
-                          <div className="flex flex-col items-center">
-                            <div className={`w-3 h-3 rounded-full ${isLatest ? 'bg-accent' : 'bg-muted-foreground/30'}`} />
-                            {idx !== ORDER_STATUS_STEPS.slice(0, currentStatusIndex + 1).length - 1 && (
-                              <div className="w-0.5 h-8 bg-muted-foreground/20" />
-                            )}
-                          </div>
-                          <div className="flex-1 pb-4">
-                            <p className={`font-medium ${isLatest ? 'text-foreground' : 'text-muted-foreground'}`}>
-                              {step.label}
-                            </p>
-                            <p className="text-sm text-muted-foreground">{step.description}</p>
-                            {isLatest && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {format(new Date(order.updated_at), "MMM d, yyyy 'at' h:mm a")}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <OrderTimeline orderId={order.id} />
                 </CardContent>
               </Card>
             </motion.div>

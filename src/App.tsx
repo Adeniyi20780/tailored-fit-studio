@@ -28,6 +28,7 @@ import OrderTracking from "./pages/OrderTracking";
 import AdminDashboard from "./pages/AdminDashboard";
 import PerfectFitGuarantee from "./pages/PerfectFitGuarantee";
 import BecomeTailor from "./pages/BecomeTailor";
+import NotificationsCenter from "./pages/NotificationsCenter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -144,6 +145,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <BecomeTailor />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationsCenter />
                 </ProtectedRoute>
               }
             />
