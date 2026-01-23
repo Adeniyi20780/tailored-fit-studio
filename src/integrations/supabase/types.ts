@@ -553,6 +553,54 @@ export type Database = {
         }
         Relationships: []
       }
+      tailor_reviews: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          order_id: string
+          rating: number
+          review_text: string | null
+          tailor_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          order_id: string
+          rating: number
+          review_text?: string | null
+          tailor_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          order_id?: string
+          rating?: number
+          review_text?: string | null
+          tailor_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tailor_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tailor_reviews_tailor_id_fkey"
+            columns: ["tailor_id"]
+            isOneToOne: false
+            referencedRelation: "tailors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tailors: {
         Row: {
           banner_url: string | null

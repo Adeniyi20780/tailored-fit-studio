@@ -12,6 +12,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+type OrderStatus = "pending" | "processing" | "tailoring" | "packaging" | "shipped" | "delivered" | "completed" | "cancelled";
+
 interface OrderNotificationRequest {
   orderId: string;
   orderNumber: string;
@@ -19,56 +21,77 @@ interface OrderNotificationRequest {
   customerName: string;
   customerPhone?: string;
   productName: string;
-  status: "shipped" | "delivered";
+  status: OrderStatus;
   estimatedDelivery?: string;
   trackingNumber?: string;
   sendWhatsApp?: boolean;
+  tailorName?: string;
 }
 
+const getStatusEmoji = (status: OrderStatus): string => {
+  const emojis: Record<OrderStatus, string> = {
+    pending: "⏳",
+    processing: "🔄",
+    tailoring: "✂️",
+    packaging: "📦",
+    shipped: "🚚",
+    delivered: "🎉",
+    completed: "✅",
+    cancelled: "❌",
+  };
+  return emojis[status] || "📋";
+};
+
+const getStatusTitle = (status: OrderStatus): string => {
+  const titles: Record<OrderStatus, string> = {
+    pending: "Order Pending",
+    processing: "Order Processing",
+    tailoring: "Your Order is Being Tailored",
+    packaging: "Order Ready for Shipping",
+    shipped: "Your Order is On Its Way",
+    delivered: "Your Order Has Arrived",
+    completed: "Order Completed",
+    cancelled: "Order Cancelled",
+  };
+  return titles[status] || "Order Update";
+};
+
+const getStatusMessage = (status: OrderStatus, data: OrderNotificationRequest): string => {
+  const messages: Record<OrderStatus, string> = {
+    pending: `Your order has been received and is pending confirmation. We'll notify you once it's being processed.`,
+    processing: `Great news! Your order has been confirmed and is now being processed.`,
+    tailoring: `Your custom garment is now being expertly crafted by our skilled tailors. This is where the magic happens!`,
+    packaging: `Your order has been completed and is being carefully packaged for shipping.`,
+    shipped: `Your order has been shipped and is on its way to you!${data.estimatedDelivery ? ` Expected delivery: ${data.estimatedDelivery}` : ''}`,
+    delivered: `Your order has been successfully delivered! We hope you love your new custom-tailored item.`,
+    completed: `Your order is complete! Thank you for shopping with us.`,
+    cancelled: `Unfortunately, your order has been cancelled. If you have any questions, please contact us.`,
+  };
+  return messages[status] || "Your order status has been updated.";
+};
+
+const getGradientColors = (status: OrderStatus): string => {
+  const colors: Record<OrderStatus, string> = {
+    pending: "#f59e0b, #d97706",
+    processing: "#3b82f6, #1d4ed8",
+    tailoring: "#8b5cf6, #6d28d9",
+    packaging: "#6366f1, #4338ca",
+    shipped: "#667eea, #764ba2",
+    delivered: "#11998e, #38ef7d",
+    completed: "#10b981, #059669",
+    cancelled: "#ef4444, #dc2626",
+  };
+  return colors[status] || "#667eea, #764ba2";
+};
+
 const getEmailContent = (data: OrderNotificationRequest) => {
-  if (data.status === "shipped") {
-    return {
-      subject: `Your order ${data.orderNumber} has been shipped! 🚚`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">📦 Your Order is On Its Way!</h1>
-          </div>
-          
-          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-            <p style="font-size: 16px;">Hi <strong>${data.customerName}</strong>,</p>
-            
-            <p style="font-size: 16px;">Great news! Your order has been shipped and is on its way to you.</p>
-            
-            <div style="background: white; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea;">
-              <h3 style="margin: 0 0 15px 0; color: #667eea;">Order Details</h3>
-              <p style="margin: 5px 0;"><strong>Order Number:</strong> ${data.orderNumber}</p>
-              <p style="margin: 5px 0;"><strong>Product:</strong> ${data.productName}</p>
-              ${data.estimatedDelivery ? `<p style="margin: 5px 0;"><strong>Estimated Delivery:</strong> ${data.estimatedDelivery}</p>` : ''}
-              ${data.trackingNumber ? `<p style="margin: 5px 0;"><strong>Tracking Number:</strong> ${data.trackingNumber}</p>` : ''}
-            </div>
-            
-            <p style="font-size: 14px; color: #666;">We'll send you another email when your order has been delivered.</p>
-            
-            <p style="font-size: 16px; margin-top: 30px;">
-              Best regards,<br>
-              <strong>The TailorSwift Team</strong>
-            </p>
-          </div>
-        </body>
-        </html>
-      `,
-    };
-  }
+  const emoji = getStatusEmoji(data.status);
+  const title = getStatusTitle(data.status);
+  const message = getStatusMessage(data.status, data);
+  const gradient = getGradientColors(data.status);
 
   return {
-    subject: `Your order ${data.orderNumber} has been delivered! 🎉`,
+    subject: `${emoji} ${title} - Order ${data.orderNumber}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -77,27 +100,32 @@ const getEmailContent = (data: OrderNotificationRequest) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
       <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">🎉 Your Order Has Arrived!</h1>
+        <div style="background: linear-gradient(135deg, ${gradient}); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">${emoji} ${title}!</h1>
         </div>
         
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
           <p style="font-size: 16px;">Hi <strong>${data.customerName}</strong>,</p>
           
-          <p style="font-size: 16px;">Your order has been successfully delivered! We hope you love your new custom-tailored item.</p>
+          <p style="font-size: 16px;">${message}</p>
           
-          <div style="background: white; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #11998e;">
-            <h3 style="margin: 0 0 15px 0; color: #11998e;">Order Details</h3>
+          <div style="background: white; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid ${gradient.split(',')[0]};">
+            <h3 style="margin: 0 0 15px 0; color: ${gradient.split(',')[0]};">Order Details</h3>
             <p style="margin: 5px 0;"><strong>Order Number:</strong> ${data.orderNumber}</p>
             <p style="margin: 5px 0;"><strong>Product:</strong> ${data.productName}</p>
+            ${data.tailorName ? `<p style="margin: 5px 0;"><strong>Tailor:</strong> ${data.tailorName}</p>` : ''}
+            ${data.estimatedDelivery ? `<p style="margin: 5px 0;"><strong>Estimated Delivery:</strong> ${data.estimatedDelivery}</p>` : ''}
+            ${data.trackingNumber ? `<p style="margin: 5px 0;"><strong>Tracking Number:</strong> ${data.trackingNumber}</p>` : ''}
           </div>
           
+          ${data.status === 'delivered' ? `
           <div style="background: #fff3cd; border-radius: 8px; padding: 15px; margin: 20px 0;">
-            <p style="margin: 0; font-size: 14px;">💡 <strong>Tip:</strong> If you have any questions about care or fit, don't hesitate to reach out!</p>
+            <p style="margin: 0; font-size: 14px;">💡 <strong>Tip:</strong> If you have any questions about care or fit, don't hesitate to reach out! You can also leave a review to help other customers.</p>
           </div>
+          ` : ''}
           
           <p style="font-size: 16px; margin-top: 30px;">
-            Thank you for choosing us!<br>
+            Best regards,<br>
             <strong>The TailorSwift Team</strong>
           </p>
         </div>
@@ -108,21 +136,24 @@ const getEmailContent = (data: OrderNotificationRequest) => {
 };
 
 const getWhatsAppMessage = (data: OrderNotificationRequest): string => {
-  if (data.status === "shipped") {
-    let message = `📦 *Your Order is On Its Way!*\n\nHi ${data.customerName},\n\nGreat news! Your order has been shipped.\n\n*Order Details:*\n• Order Number: ${data.orderNumber}\n• Product: ${data.productName}`;
-    
-    if (data.estimatedDelivery) {
-      message += `\n• Estimated Delivery: ${data.estimatedDelivery}`;
-    }
-    if (data.trackingNumber) {
-      message += `\n• Tracking Number: ${data.trackingNumber}`;
-    }
-    
-    message += `\n\nWe'll notify you when your order is delivered!\n\n— The TailorSwift Team`;
-    return message;
+  const emoji = getStatusEmoji(data.status);
+  const title = getStatusTitle(data.status);
+  const message = getStatusMessage(data.status, data);
+  
+  let whatsappMessage = `${emoji} *${title}!*\n\nHi ${data.customerName},\n\n${message}\n\n*Order Details:*\n• Order Number: ${data.orderNumber}\n• Product: ${data.productName}`;
+  
+  if (data.tailorName) {
+    whatsappMessage += `\n• Tailor: ${data.tailorName}`;
   }
-
-  return `🎉 *Your Order Has Arrived!*\n\nHi ${data.customerName},\n\nYour order has been successfully delivered!\n\n*Order Details:*\n• Order Number: ${data.orderNumber}\n• Product: ${data.productName}\n\nWe hope you love your new custom-tailored item. If you have any questions about care or fit, don't hesitate to reach out!\n\nThank you for choosing us!\n— The TailorSwift Team`;
+  if (data.estimatedDelivery) {
+    whatsappMessage += `\n• Estimated Delivery: ${data.estimatedDelivery}`;
+  }
+  if (data.trackingNumber) {
+    whatsappMessage += `\n• Tracking Number: ${data.trackingNumber}`;
+  }
+  
+  whatsappMessage += `\n\n— The TailorSwift Team`;
+  return whatsappMessage;
 };
 
 const sendWhatsAppMessage = async (phoneNumber: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string }> => {
@@ -207,11 +238,12 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Only send for shipped or delivered status
-    if (!["shipped", "delivered"].includes(data.status)) {
+    // Validate status is a known value
+    const validStatuses: OrderStatus[] = ["pending", "processing", "tailoring", "packaging", "shipped", "delivered", "completed", "cancelled"];
+    if (!validStatuses.includes(data.status as OrderStatus)) {
       return new Response(
-        JSON.stringify({ message: "No notification needed for this status" }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        JSON.stringify({ message: "Invalid status value" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
