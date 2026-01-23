@@ -158,8 +158,6 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
 
   // Send order notification
   const sendNotification = async (orderId: string, status: string, sendWhatsApp: boolean = false) => {
-    if (!["shipped", "delivered"].includes(status)) return;
-    
     const order = orders.find(o => o.id === orderId);
     if (!order || !order.customer_email) {
       console.log("Cannot send notification: missing order or customer email");
@@ -188,6 +186,7 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
             status: status,
             estimatedDelivery: order.estimated_delivery,
             sendWhatsApp: sendWhatsApp && !!order.customer_phone,
+            tailorName: tailor?.store_name,
           }),
         }
       );
@@ -197,7 +196,9 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
         const channels = [];
         if (result.results?.email?.success) channels.push('email');
         if (result.results?.whatsapp?.success) channels.push('WhatsApp');
-        toast.success(`${status === 'shipped' ? 'Shipment' : 'Delivery'} notification sent via ${channels.join(' & ')}`);
+        if (channels.length > 0) {
+          toast.success(`Notification sent via ${channels.join(' & ')}`);
+        }
       } else if (response.status === 207) {
         // Partial success
         const channels = [];
@@ -217,6 +218,19 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
     }
   };
 
+  // Add timeline entry for status change
+  const addTimelineEntry = async (orderId: string, status: string, note?: string) => {
+    try {
+      await supabase.from("order_timeline").insert({
+        order_id: orderId,
+        status: status,
+        note: note || null,
+      });
+    } catch (error) {
+      console.error("Failed to add timeline entry:", error);
+    }
+  };
+
   // Update order status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ orderId, status, notes, sendWhatsApp }: { orderId: string; status: string; notes?: string; sendWhatsApp?: boolean }) => {
@@ -230,14 +244,18 @@ export const useStoreOrders = (statusFilter?: string, searchQuery?: string) => {
         .eq("id", orderId);
       if (error) throw error;
       
+      // Add timeline entry
+      await addTimelineEntry(orderId, status, notes);
+      
       // Return status to use in onSuccess
       return { orderId, status, sendWhatsApp };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["store-all-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["order-timeline"] });
       toast.success("Order status updated successfully");
       
-      // Send notification for shipped/delivered status
+      // Send notification for status changes
       if (data) {
         sendNotification(data.orderId, data.status, data.sendWhatsApp);
       }

@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useTailorStore } from "@/hooks/useTailorStore";
+import { TailorReviewsSection } from "@/components/reviews/TailorReviewsSection";
 import type { ProductCategory } from "@/types/customization";
 
 const categoryMap: Record<string, ProductCategory> = {
@@ -309,6 +310,13 @@ const TailorStorePage = () => {
               ))}
             </div>
           )}
+        </section>
+
+        <Separator className="container" />
+
+        {/* Reviews Section */}
+        <section className="container py-8 md:py-12">
+          <TailorReviewsSection tailorId={tailor.id} />
         </section>
       </main>
 
