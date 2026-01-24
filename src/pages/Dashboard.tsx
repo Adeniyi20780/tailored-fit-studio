@@ -1,10 +1,22 @@
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useCustomerAnalytics } from "@/hooks/useCustomerAnalytics";
+import { useStoreAnalytics } from "@/hooks/useStoreAnalytics";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import CustomerOrderStats from "@/components/dashboard/CustomerOrderStats";
+import CustomerSpendingChart from "@/components/dashboard/CustomerSpendingChart";
+import SpendingByCategory from "@/components/dashboard/SpendingByCategory";
+import ProductRecommendations from "@/components/dashboard/ProductRecommendations";
+import RecentCustomerOrders from "@/components/dashboard/RecentCustomerOrders";
+import StatsCard from "@/components/store/StatsCard";
+import RevenueChart from "@/components/store/RevenueChart";
+import BestSellingProducts from "@/components/store/BestSellingProducts";
+import CustomerDemographics from "@/components/store/CustomerDemographics";
+import OrderCompletionRate from "@/components/store/OrderCompletionRate";
 import {
   Store,
   ShoppingBag,
@@ -14,22 +26,21 @@ import {
   Package,
   Users,
   PlusCircle,
+  DollarSign,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-/**
- * Dashboard component with role-based UI rendering.
- * 
- * SECURITY NOTE: The role-based UI rendering below is for UX purposes only.
- * All data access is protected by Row Level Security (RLS) policies in the database.
- * Even if a user manipulates the DOM or navigates directly to tailor-specific routes,
- * they cannot access data they don't own because RLS enforces data access at the database level.
- * 
- * The ProtectedRoute wrapper ensures authentication, and RLS ensures authorization.
- */
 const Dashboard = () => {
   const { user } = useAuth();
   const { isTailor, isCustomer, loading: roleLoading } = useUserRole();
+  
+  // Customer analytics
+  const customerAnalytics = useCustomerAnalytics();
+  
+  // Tailor analytics
+  const tailorAnalytics = useStoreAnalytics();
 
   if (roleLoading) {
     return (
@@ -44,28 +55,28 @@ const Dashboard = () => {
       title: "Browse Tailors",
       description: "Find the perfect tailor for your style",
       icon: Store,
-      href: "/marketplace",
+      href: "/tailors",
       color: "bg-primary/10 text-primary",
     },
     {
       title: "My Orders",
       description: "Track your custom orders",
       icon: Package,
-      href: "/orders",
+      href: "/my-orders",
       color: "bg-accent/10 text-accent",
     },
     {
-      title: "My Measurements",
-      description: "View and update your body measurements",
-      icon: Ruler,
-      href: "/measurements",
+      title: "Browse Catalog",
+      description: "Explore the latest custom clothing",
+      icon: ShoppingBag,
+      href: "/catalog",
       color: "bg-terracotta/10 text-terracotta",
     },
     {
-      title: "Account Settings",
+      title: "My Profile",
       description: "Manage your profile and preferences",
       icon: Settings,
-      href: "/settings",
+      href: "/profile",
       color: "bg-muted text-muted-foreground",
     },
   ];
@@ -93,15 +104,14 @@ const Dashboard = () => {
       color: "bg-terracotta/10 text-terracotta",
     },
     {
-      title: "Analytics",
-      description: "View your sales and performance",
-      icon: TrendingUp,
-      href: "/store/analytics",
-      color: "bg-success/10 text-success",
+      title: "Store Settings",
+      description: "Customize your store",
+      icon: Settings,
+      href: "/store/settings",
+      color: "bg-muted text-muted-foreground",
     },
   ];
 
-  // Role-based UI is for UX only. Data security is enforced by RLS.
   const quickActions = isTailor() ? tailorQuickActions : customerQuickActions;
 
   return (
@@ -113,15 +123,17 @@ const Dashboard = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-12"
+            className="mb-8"
           >
             <h1 className="font-display text-3xl md:text-4xl font-semibold text-foreground mb-2">
-              Welcome back!
+              {isTailor() 
+                ? `${tailorAnalytics.tailor?.store_name || "Store"} Dashboard`
+                : "Your Dashboard"}
             </h1>
             <p className="text-muted-foreground text-lg">
               {isTailor()
-                ? "Manage your store and connect with customers worldwide."
-                : "Discover tailored fashion and track your orders."}
+                ? "Manage your store and view performance analytics."
+                : "Track your orders, spending, and discover personalized recommendations."}
             </p>
           </motion.div>
 
@@ -156,99 +168,223 @@ const Dashboard = () => {
             </motion.div>
           )}
 
-          {/* Quick Actions Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <h2 className="font-display text-xl font-semibold text-foreground mb-6">
-              Quick Actions
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {quickActions.map((action, index) => (
-                <Link key={action.title} to={action.href}>
-                  <Card className="h-full hover:border-accent/50 transition-colors cursor-pointer group">
-                    <CardHeader className="pb-2">
-                      <div
-                        className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}
-                      >
-                        <action.icon className="w-5 h-5" />
-                      </div>
-                      <CardTitle className="text-lg">{action.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription>{action.description}</CardDescription>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </motion.div>
+          {/* Customer Dashboard */}
+          {isCustomer() && !isTailor() && (
+            <>
+              {/* Order Stats */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="mb-8"
+              >
+                <CustomerOrderStats 
+                  stats={customerAnalytics.orderStats} 
+                  isLoading={customerAnalytics.isLoading} 
+                />
+              </motion.div>
 
-          {/* Stats for tailors - UI only, data protected by RLS */}
+              {/* Charts Row */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="grid gap-6 lg:grid-cols-3 mb-8"
+              >
+                <CustomerSpendingChart 
+                  data={customerAnalytics.monthlySpending} 
+                  isLoading={customerAnalytics.isLoading} 
+                />
+                <SpendingByCategory 
+                  data={customerAnalytics.spendingByCategory} 
+                  isLoading={customerAnalytics.isLoading} 
+                />
+              </motion.div>
+
+              {/* Recent Orders and Recommendations */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="grid gap-6 lg:grid-cols-2 mb-8"
+              >
+                <RecentCustomerOrders 
+                  orders={customerAnalytics.recentOrders} 
+                  isLoading={customerAnalytics.isLoading} 
+                />
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quick Actions</CardTitle>
+                    <CardDescription>Navigate to your favorite sections</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                      {quickActions.map((action) => (
+                        <Link key={action.title} to={action.href}>
+                          <div className="flex items-center gap-3 p-3 rounded-lg border hover:border-accent/50 transition-colors cursor-pointer group">
+                            <div className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                              <action.icon className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground text-sm">{action.title}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-1">{action.description}</p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Product Recommendations */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <ProductRecommendations 
+                  products={customerAnalytics.recommendations}
+                  favoriteCategories={customerAnalytics.favoriteCategories}
+                  isLoading={customerAnalytics.isLoading} 
+                />
+              </motion.div>
+            </>
+          )}
+
+          {/* Tailor Dashboard */}
           {isTailor() && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="mt-12"
-            >
-              <h2 className="font-display text-xl font-semibold text-foreground mb-6">
-                Overview
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-muted-foreground text-sm">
-                          Total Orders
-                        </p>
-                        <p className="text-3xl font-semibold text-foreground">
-                          0
-                        </p>
-                      </div>
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Package className="w-6 h-6 text-primary" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-muted-foreground text-sm">Revenue</p>
-                        <p className="text-3xl font-semibold text-foreground">
-                          $0
-                        </p>
-                      </div>
-                      <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
-                        <TrendingUp className="w-6 h-6 text-success" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-muted-foreground text-sm">
-                          Customers
-                        </p>
-                        <p className="text-3xl font-semibold text-foreground">
-                          0
-                        </p>
-                      </div>
-                      <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
-                        <Users className="w-6 h-6 text-accent" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </motion.div>
+            <>
+              {/* Stats Cards */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8"
+              >
+                <StatsCard
+                  title="Total Revenue"
+                  value={`$${tailorAnalytics.stats.totalRevenue.toFixed(2)}`}
+                  description="from all orders"
+                  icon={DollarSign}
+                  trend={tailorAnalytics.stats.totalRevenue > 0 ? { value: 12, isPositive: true } : undefined}
+                />
+                <StatsCard
+                  title="Total Orders"
+                  value={tailorAnalytics.stats.totalOrders}
+                  description="all time"
+                  icon={ShoppingBag}
+                />
+                <StatsCard
+                  title="Products"
+                  value={tailorAnalytics.stats.totalProducts}
+                  description="in your catalog"
+                  icon={Package}
+                />
+                <StatsCard
+                  title="Completion Rate"
+                  value={
+                    tailorAnalytics.stats.totalOrders > 0
+                      ? `${((tailorAnalytics.stats.completedOrders / tailorAnalytics.stats.totalOrders) * 100).toFixed(0)}%`
+                      : "0%"
+                  }
+                  description="orders completed"
+                  icon={TrendingUp}
+                />
+              </motion.div>
+
+              {/* Secondary Stats */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8"
+              >
+                <StatsCard
+                  title="Completed"
+                  value={tailorAnalytics.stats.completedOrders}
+                  description="orders"
+                  icon={CheckCircle}
+                />
+                <StatsCard
+                  title="In Progress"
+                  value={tailorAnalytics.stats.inProgressOrders}
+                  description="orders"
+                  icon={Clock}
+                />
+                <StatsCard
+                  title="Pending"
+                  value={tailorAnalytics.stats.pendingOrders}
+                  description="awaiting action"
+                  icon={Clock}
+                />
+                <StatsCard
+                  title="Customers"
+                  value={new Set(tailorAnalytics.recentOrders.map(o => o.customer_name)).size}
+                  description="unique customers"
+                  icon={Users}
+                />
+              </motion.div>
+
+              {/* Quick Actions */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="mb-8"
+              >
+                <h2 className="font-display text-xl font-semibold text-foreground mb-4">
+                  Quick Actions
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {quickActions.map((action) => (
+                    <Link key={action.title} to={action.href}>
+                      <Card className="h-full hover:border-accent/50 transition-colors cursor-pointer group">
+                        <CardHeader className="pb-2">
+                          <div
+                            className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}
+                          >
+                            <action.icon className="w-5 h-5" />
+                          </div>
+                          <CardTitle className="text-lg">{action.title}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <CardDescription>{action.description}</CardDescription>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Charts Row */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="grid gap-6 lg:grid-cols-3 mb-8"
+              >
+                <RevenueChart data={tailorAnalytics.revenueTrends} isLoading={tailorAnalytics.isLoading} />
+                <OrderCompletionRate
+                  completed={tailorAnalytics.stats.completedOrders}
+                  inProgress={tailorAnalytics.stats.inProgressOrders}
+                  pending={tailorAnalytics.stats.pendingOrders}
+                  cancelled={tailorAnalytics.stats.cancelledOrders}
+                  isLoading={tailorAnalytics.isLoading}
+                />
+              </motion.div>
+
+              {/* Analytics Row */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                className="grid gap-6 lg:grid-cols-2 mb-8"
+              >
+                <BestSellingProducts products={tailorAnalytics.bestSellingProducts} isLoading={tailorAnalytics.isLoading} />
+                <CustomerDemographics data={tailorAnalytics.customerDemographics} isLoading={tailorAnalytics.isLoading} />
+              </motion.div>
+            </>
           )}
         </div>
       </main>
