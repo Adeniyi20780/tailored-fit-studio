@@ -109,6 +109,47 @@ export type Database = {
           },
         ]
       }
+      customer_loyalty: {
+        Row: {
+          available_points: number
+          created_at: string
+          current_tier_id: string | null
+          id: string
+          lifetime_points: number
+          total_points: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          available_points?: number
+          created_at?: string
+          current_tier_id?: string | null
+          id?: string
+          lifetime_points?: number
+          total_points?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          available_points?: number
+          created_at?: string
+          current_tier_id?: string | null
+          id?: string
+          lifetime_points?: number
+          total_points?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_loyalty_current_tier_id_fkey"
+            columns: ["current_tier_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_measurements: {
         Row: {
           additional_measurements: Json | null
@@ -160,6 +201,80 @@ export type Database = {
           updated_at?: string
           user_id?: string
           waist?: number | null
+        }
+        Relationships: []
+      }
+      loyalty_rewards: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          min_tier_id: string | null
+          name: string
+          points_cost: number
+          reward_type: string
+          reward_value: number
+          stock: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          min_tier_id?: string | null
+          name: string
+          points_cost: number
+          reward_type: string
+          reward_value: number
+          stock?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          min_tier_id?: string | null
+          name?: string
+          points_cost?: number
+          reward_type?: string
+          reward_value?: number
+          stock?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_rewards_min_tier_id_fkey"
+            columns: ["min_tier_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_tiers: {
+        Row: {
+          benefits: string[] | null
+          created_at: string
+          id: string
+          min_points: number
+          multiplier: number
+          name: string
+        }
+        Insert: {
+          benefits?: string[] | null
+          created_at?: string
+          id?: string
+          min_points?: number
+          multiplier?: number
+          name: string
+        }
+        Update: {
+          benefits?: string[] | null
+          created_at?: string
+          id?: string
+          min_points?: number
+          multiplier?: number
+          name?: string
         }
         Relationships: []
       }
@@ -345,6 +460,66 @@ export type Database = {
           },
         ]
       }
+      points_transactions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          points: number
+          reference_id: string | null
+          reference_type: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          points: number
+          reference_id?: string | null
+          reference_type?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          points?: number
+          reference_id?: string | null
+          reference_type?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      product_comparisons: {
+        Row: {
+          created_at: string
+          id: string
+          product_ids: string[]
+          session_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_ids?: string[]
+          session_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_ids?: string[]
+          session_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       product_price_history: {
         Row: {
           changed_at: string
@@ -516,6 +691,77 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reward_redemptions: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          points_spent: number
+          reward_id: string
+          status: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          points_spent: number
+          reward_id: string
+          status?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          points_spent?: number
+          reward_id?: string
+          status?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_redemptions_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_rewards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shared_wishlists: {
         Row: {
