@@ -7,6 +7,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProductCard from '@/components/catalog/ProductCard';
 import CategoryFilter from '@/components/catalog/CategoryFilter';
+import { ComparisonDrawer } from '@/components/comparison/ComparisonDrawer';
 import { useProducts } from '@/hooks/useProducts';
 
 const CATEGORIES = ['all', 'shirts', 'suits', 'jeans', 'kaftans', 'traditional'];
@@ -130,6 +131,7 @@ export default function Catalog() {
         </section>
       </main>
 
+      <ComparisonDrawer />
       <Footer />
     </div>
   );

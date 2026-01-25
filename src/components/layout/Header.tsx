@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Scissors, Heart, User, LogOut, Package, Store, UserCircle, Shield, Bell } from "lucide-react";
+import { Menu, X, Scissors, Heart, User, LogOut, Package, Store, UserCircle, Shield, Bell, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -33,6 +33,7 @@ const Header = () => {
   const navLinks = [
     { href: "/catalog", label: "Shop" },
     { href: "/tailors", label: "Browse Tailors" },
+    { href: "/loyalty", label: "Rewards" },
     { href: "/perfect-fit-guarantee", label: "Perfect Fit" },
     { href: "/become-a-tailor", label: "Become a Tailor" },
   ];
