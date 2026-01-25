@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Palette, Ruler, Sparkles, Heart } from 'lucide-react';
+import { Palette, Ruler, Sparkles, Heart, GitCompare, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useProductComparison } from '@/hooks/useProductComparison';
 import type { Product } from '@/hooks/useProducts';
 import type { ProductCategory } from '@/types/customization';
 
@@ -32,6 +33,9 @@ export default function ProductCard({ product, index }: ProductCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isInWishlist, toggleWishlist, isToggling } = useWishlist();
+  const { addToComparison, removeFromComparison, isInComparison, canAddMore } = useProductComparison();
+  
+  const inComparison = isInComparison(product.id);
   
   const handleViewProduct = () => {
     navigate(`/product/${product.id}`);
@@ -62,6 +66,15 @@ export default function ProductCard({ product, index }: ProductCardProps) {
   const hasFabrics = product.fabrics && product.fabrics.length > 0;
   const isWishlisted = isInWishlist(product.id);
 
+  const handleCompareClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (inComparison) {
+      removeFromComparison(product.id);
+    } else {
+      addToComparison(product.id);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -79,18 +92,32 @@ export default function ProductCard({ product, index }: ProductCardProps) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
-        {/* Wishlist button */}
-        <button
-          onClick={handleWishlistClick}
-          disabled={isToggling}
-          className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${
-            isWishlisted 
-              ? 'bg-red-500 text-white' 
-              : 'bg-white/90 text-muted-foreground hover:text-red-500 hover:bg-white'
-          }`}
-        >
-          <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
-        </button>
+        {/* Wishlist & Compare buttons */}
+        <div className="absolute top-3 right-3 flex flex-col gap-2">
+          <button
+            onClick={handleWishlistClick}
+            disabled={isToggling}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${
+              isWishlisted 
+                ? 'bg-destructive text-destructive-foreground' 
+                : 'bg-background/90 text-muted-foreground hover:text-destructive hover:bg-background'
+            }`}
+          >
+            <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
+          </button>
+          <button
+            onClick={handleCompareClick}
+            disabled={!inComparison && !canAddMore}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${
+              inComparison 
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-background/90 text-muted-foreground hover:text-primary hover:bg-background'
+            } ${!inComparison && !canAddMore ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={inComparison ? "Remove from comparison" : "Add to comparison"}
+          >
+            {inComparison ? <Check className="w-4 h-4" /> : <GitCompare className="w-4 h-4" />}
+          </button>
+        </div>
 
         {/* Quick customize button on hover */}
         <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
