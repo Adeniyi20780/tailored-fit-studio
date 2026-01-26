@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Scissors, Heart, User, LogOut, Package, Store, UserCircle, Shield, Bell, Crown } from "lucide-react";
+import { Menu, X, Scissors, Heart, User, LogOut, Package, Store, UserCircle, Shield, Bell, Crown, Ruler } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -108,6 +108,12 @@ const Header = () => {
                     <Link to="/my-orders" className="cursor-pointer">
                       <Package className="w-4 h-4 mr-2" />
                       My Orders
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/body-scanner" className="cursor-pointer">
+                      <Ruler className="w-4 h-4 mr-2" />
+                      AI Body Scanner
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>

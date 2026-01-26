@@ -30,6 +30,7 @@ import PerfectFitGuarantee from "./pages/PerfectFitGuarantee";
 import BecomeTailor from "./pages/BecomeTailor";
 import NotificationsCenter from "./pages/NotificationsCenter";
 import LoyaltyProgram from "./pages/LoyaltyProgram";
+import BodyScanner from "./pages/BodyScanner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -162,6 +163,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <LoyaltyProgram />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/body-scanner"
+              element={
+                <ProtectedRoute>
+                  <BodyScanner />
                 </ProtectedRoute>
               }
             />
