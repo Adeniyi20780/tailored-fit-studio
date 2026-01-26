@@ -52,10 +52,27 @@ export function useCreateOrder() {
         .single();
 
       if (error) throw error;
+
+      // Award loyalty points for the purchase
+      try {
+        await supabase.functions.invoke('award-loyalty-points', {
+          body: {
+            order_id: data.id,
+            customer_id: user.id,
+            amount: orderData.totalAmount,
+          },
+        });
+      } catch (loyaltyError) {
+        console.error('Failed to award loyalty points:', loyaltyError);
+        // Don't throw - order was successful, loyalty points are a bonus
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-loyalty'] });
+      queryClient.invalidateQueries({ queryKey: ['points-transactions'] });
     },
   });
 }

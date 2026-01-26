@@ -6,3 +6,16 @@ verify_jwt = false
 [functions.price-alert-notifications]
 verify_jwt = false
 schedule = "0 * * * *"
+
+[functions.award-loyalty-points]
+verify_jwt = false
+
+[functions.send-loyalty-notification]
+verify_jwt = false
+
+[functions.check-expiring-rewards]
+verify_jwt = false
+schedule = "0 9 * * *"
+
+[functions.analyze-body-measurements]
+verify_jwt = true

@@ -20,6 +20,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Crown,
 } from "lucide-react";
 import {
   AreaChart,
@@ -39,6 +40,7 @@ import { format } from "date-fns";
 import AdminUsersTable from "@/components/admin/AdminUsersTable";
 import AdminOrdersTable from "@/components/admin/AdminOrdersTable";
 import AdminRefundsTable from "@/components/admin/AdminRefundsTable";
+import AdminLoyaltySection from "@/components/admin/AdminLoyaltySection";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--terracotta))", "hsl(var(--success))", "hsl(var(--muted))"];
 
@@ -152,7 +154,7 @@ const AdminDashboard = () => {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+            <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="orders">Orders</TabsTrigger>
@@ -163,6 +165,10 @@ const AdminDashboard = () => {
                     {stats.pendingRefunds}
                   </Badge>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="loyalty" className="flex items-center gap-1">
+                <Crown className="w-4 h-4" />
+                Loyalty
               </TabsTrigger>
             </TabsList>
 
@@ -327,6 +333,11 @@ const AdminDashboard = () => {
             {/* Refunds Tab */}
             <TabsContent value="refunds">
               <AdminRefundsTable refundRequests={refundRequests} />
+            </TabsContent>
+
+            {/* Loyalty Tab */}
+            <TabsContent value="loyalty">
+              <AdminLoyaltySection />
             </TabsContent>
           </Tabs>
         </div>
