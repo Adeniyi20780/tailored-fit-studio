@@ -1,7 +1,10 @@
+import { Link } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import AIBodyScanner from "@/components/measurements/AIBodyScanner";
+import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { HelpCircle } from "lucide-react";
 
 const BodyScanner = () => {
   return (
@@ -18,10 +21,16 @@ const BodyScanner = () => {
               <h1 className="font-display text-3xl md:text-4xl font-semibold text-foreground mb-4">
                 AI Body Scanner
               </h1>
-              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-4">
                 Get perfectly fitted custom clothing with our AI-powered body measurement system.
                 Stand in place, perform a slow 360° spin, and let our AI extract 30+ body measurements in seconds.
               </p>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/measurement-guide" className="gap-2">
+                  <HelpCircle className="w-4 h-4" />
+                  View Measurement Guide
+                </Link>
+              </Button>
             </div>
 
             <AIBodyScanner />

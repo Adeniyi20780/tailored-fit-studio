@@ -117,6 +117,11 @@ const Header = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
+                    <Link to="/measurement-guide" className="cursor-pointer text-muted-foreground">
+                      How to Measure
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link to="/dashboard" className="cursor-pointer">
                       Dashboard
                     </Link>
