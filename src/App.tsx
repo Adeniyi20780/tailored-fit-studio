@@ -31,6 +31,7 @@ import BecomeTailor from "./pages/BecomeTailor";
 import NotificationsCenter from "./pages/NotificationsCenter";
 import LoyaltyProgram from "./pages/LoyaltyProgram";
 import BodyScanner from "./pages/BodyScanner";
+import MeasurementGuide from "./pages/MeasurementGuide";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -174,6 +175,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/measurement-guide" element={<MeasurementGuide />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

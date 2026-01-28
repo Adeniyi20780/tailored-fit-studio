@@ -1,15 +1,22 @@
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Store, Sparkles, ShoppingBag, Loader2, AlertCircle, Heart } from "lucide-react";
+import { ArrowLeft, Store, Sparkles, ShoppingBag, Loader2, AlertCircle, Heart, Ruler } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import ProductImageGallery from "@/components/product/ProductImageGallery";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
 import { ProductReviewsSection } from "@/components/reviews/ProductReviewsSection";
+import VirtualTryOn from "@/components/tryon/VirtualTryOn";
 import { useProduct } from "@/hooks/useProducts";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,6 +44,8 @@ const ProductDetail = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isInWishlist, toggleWishlist, isToggling } = useWishlist();
+
+  const [showVirtualTryOn, setShowVirtualTryOn] = useState(false);
 
   const { data: product, isLoading, error } = useProduct(productId || "");
 
@@ -256,15 +265,21 @@ const ProductDetail = () => {
                   <Sparkles className="h-5 w-5" />
                   Customize & Order
                 </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="flex-1 gap-2"
-                  onClick={() => navigate("/catalog")}
-                >
-                  <ShoppingBag className="h-5 w-5" />
-                  Continue Shopping
-                </Button>
+                <Dialog open={showVirtualTryOn} onOpenChange={setShowVirtualTryOn}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="flex-1 gap-2"
+                    >
+                      <Ruler className="h-5 w-5" />
+                      Virtual Try-On
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+                    <VirtualTryOn product={product} onClose={() => setShowVirtualTryOn(false)} />
+                  </DialogContent>
+                </Dialog>
               </div>
 
               {/* Additional Info */}

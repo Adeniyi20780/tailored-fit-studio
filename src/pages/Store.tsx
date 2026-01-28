@@ -9,6 +9,7 @@ import QuickActions from "@/components/store/QuickActions";
 import CustomerDemographics from "@/components/store/CustomerDemographics";
 import TailorRefundsSection from "@/components/store/TailorRefundsSection";
 import { TailorAlterationsSection } from "@/components/store/TailorAlterationsSection";
+import IncomingOrdersWidget from "@/components/store/IncomingOrdersWidget";
 import Header from "@/components/layout/Header";
 import {
   DollarSign,
@@ -111,6 +112,13 @@ const Store = () => {
           <RevenueChart data={revenueTrends} isLoading={isLoading} />
           <QuickActions />
         </div>
+
+        {/* Incoming Orders with Measurements */}
+        {tailor?.id && (
+          <div className="mb-8">
+            <IncomingOrdersWidget tailorId={tailor.id} />
+          </div>
+        )}
 
         {/* Analytics Row */}
         <div className="grid gap-6 lg:grid-cols-3 mb-8">
