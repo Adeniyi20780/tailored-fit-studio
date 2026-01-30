@@ -20,12 +20,86 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    // Verify authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - Missing or invalid authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create client with user's auth token to verify identity
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - Invalid token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+
+    // Use service role for elevated operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { order_id, customer_id, amount }: AwardPointsRequest = await req.json();
 
     if (!order_id || !customer_id || !amount) {
       throw new Error("Missing required fields: order_id, customer_id, amount");
+    }
+
+    // Verify the order exists and belongs to the specified customer
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .select("id, customer_id, status")
+      .eq("id", order_id)
+      .single();
+
+    if (orderError || !order) {
+      return new Response(
+        JSON.stringify({ error: "Order not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (order.customer_id !== customer_id) {
+      return new Response(
+        JSON.stringify({ error: "Order does not belong to specified customer" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify the caller is the customer themselves (awarding their own points from their order)
+    if (userId !== customer_id) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden - Can only award points for your own orders" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if points were already awarded for this order to prevent double-awarding
+    const { data: existingTransaction } = await supabase
+      .from("points_transactions")
+      .select("id")
+      .eq("reference_id", order_id)
+      .eq("reference_type", "order")
+      .eq("type", "earned")
+      .maybeSingle();
+
+    if (existingTransaction) {
+      return new Response(
+        JSON.stringify({ error: "Points already awarded for this order", already_awarded: true }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     console.log(`Awarding points for order ${order_id}, customer ${customer_id}, amount ${amount}`);
