@@ -45,15 +45,36 @@ export const useCustomerProfile = () => {
     mutationFn: async (updates: UpdateProfileData) => {
       if (!user) throw new Error("Must be logged in");
 
-      const { error } = await supabase
+      // Check if profile exists first
+      const { data: existingProfile } = await supabase
         .from("profiles")
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id);
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (existingProfile) {
+        // Update existing profile
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            ...updates,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+      } else {
+        // Insert new profile
+        const { error } = await supabase
+          .from("profiles")
+          .insert({
+            user_id: user.id,
+            email: user.email,
+            ...updates,
+          });
+
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Profile updated successfully!");
@@ -68,7 +89,7 @@ export const useCustomerProfile = () => {
   return {
     profile,
     isLoading,
-    updateProfile: updateProfileMutation.mutate,
+    updateProfile: updateProfileMutation.mutateAsync,
     isUpdating: updateProfileMutation.isPending,
   };
 };

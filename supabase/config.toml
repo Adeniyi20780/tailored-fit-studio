@@ -18,4 +18,4 @@ verify_jwt = false
 schedule = "0 9 * * *"
 
 [functions.analyze-body-measurements]
-verify_jwt = true
+verify_jwt = false

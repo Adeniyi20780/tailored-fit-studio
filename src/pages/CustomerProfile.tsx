@@ -67,16 +67,17 @@ const CustomerProfile = () => {
     },
   });
 
-  const onSubmit = (data: ProfileFormValues) => {
-    updateProfile(
-      {
+  const onSubmit = async (data: ProfileFormValues) => {
+    try {
+      await updateProfile({
         full_name: data.full_name,
         phone: data.phone || undefined,
-      },
-      {
-        onSuccess: () => setIsEditing(false),
-      }
-    );
+      });
+      setIsEditing(false);
+    } catch (error) {
+      // Error is already handled by the mutation
+      console.error("Failed to update profile:", error);
+    }
   };
 
   const initials = profile?.full_name
