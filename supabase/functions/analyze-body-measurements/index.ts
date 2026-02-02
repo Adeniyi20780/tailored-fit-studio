@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { parseJsonWithFallback } from "./_shared/parseJson.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,13 +28,16 @@ serve(async (req) => {
       );
     }
 
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    // When verify_jwt=false, explicitly pass the token to avoid edge cases.
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: "Invalid or expired authentication token" }),
@@ -77,7 +81,9 @@ Given the person's stated height of ${height_cm}cm and gender (${gender}), analy
 
 You must be precise and provide realistic measurements based on body proportions visible in the images. Use the stated height as your primary reference for scale.
 
-Output ONLY a valid JSON object with the following structure (all values in centimeters):
+    Output ONLY a valid JSON object (NO markdown, NO prose, NO code fences). Keep output concise.
+    The "notes" field MUST be an empty string ("") to prevent long text from truncating the JSON.
+    Use the following structure (all values in centimeters):
 {
   "measurements": {
     "height": ${height_cm},
@@ -125,7 +131,7 @@ Output ONLY a valid JSON object with the following structure (all values in cent
     "suit_size": "<number>",
     "body_type": "<ectomorph/mesomorph/endomorph/balanced>"
   },
-  "notes": "<any additional observations about posture, fit concerns, or measurement accuracy>"
+      "notes": ""
 }`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -143,14 +149,14 @@ Output ONLY a valid JSON object with the following structure (all values in cent
             content: [
               {
                 type: "text",
-                text: `Please analyze these ${images.length} images of a person (height: ${height_cm}cm, gender: ${gender}) and extract detailed body measurements for custom tailoring. The images show the person from different angles during a 360-degree rotation.`,
+                text: `Analyze these images (height: ${height_cm}cm, gender: ${gender}) and return ONLY the JSON object described in the system instructions. Do not include markdown or any extra text.`,
               },
               ...imageContent,
             ],
           },
         ],
         max_tokens: 4000,
-        temperature: 0.2,
+        temperature: 0.1,
       }),
     });
 
@@ -180,13 +186,9 @@ Output ONLY a valid JSON object with the following structure (all values in cent
       throw new Error("No response from AI model");
     }
 
-    // Parse the JSON response
     let measurements;
     try {
-      // Extract JSON from the response (handle markdown code blocks)
-      const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
-      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
-      measurements = JSON.parse(jsonStr);
+      measurements = parseJsonWithFallback(content);
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
       throw new Error("Failed to parse measurement data from AI response");
