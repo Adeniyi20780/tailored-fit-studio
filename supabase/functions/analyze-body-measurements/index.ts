@@ -149,7 +149,7 @@ Output ONLY a valid JSON object with the following structure (all values in cent
             ],
           },
         ],
-        max_tokens: 2000,
+        max_tokens: 4000,
         temperature: 0.2,
       }),
     });
