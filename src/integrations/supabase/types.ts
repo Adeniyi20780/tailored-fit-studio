@@ -71,6 +71,48 @@ export type Database = {
           },
         ]
       }
+      body_scan_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          gender: string
+          height_cm: number
+          id: string
+          images: Json
+          result: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          gender: string
+          height_cm: number
+          id?: string
+          images: Json
+          result?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          gender?: string
+          height_cm?: number
+          id?: string
+          images?: Json
+          result?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cart_items: {
         Row: {
           created_at: string

@@ -19,3 +19,12 @@ schedule = "0 9 * * *"
 
 [functions.analyze-body-measurements]
 verify_jwt = false
+
+[functions.submit-body-scan]
+verify_jwt = false
+
+[functions.process-body-scan]
+verify_jwt = false
+
+[functions.poll-body-scan]
+verify_jwt = false
