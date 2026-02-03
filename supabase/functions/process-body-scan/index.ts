@@ -4,13 +4,11 @@ import { parseJsonWithFallback } from "../_shared/parseJson.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface MeasurementRequest {
-  images: string[]; // base64 encoded images from camera capture
-  height_cm: number; // User provides their height for scale reference
-  gender: "male" | "female";
+interface ProcessRequest {
+  job_id: string;
 }
 
 serve(async (req) => {
@@ -18,57 +16,65 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  let jobId: string | undefined;
+
   try {
-    // Verify authentication
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
+    const { job_id }: ProcessRequest = await req.json();
+    jobId = job_id;
+
+    if (!jobId) {
       return new Response(
-        JSON.stringify({ error: "Authentication required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const token = authHeader.replace(/^Bearer\s+/i, "");
-
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    // When verify_jwt=false, explicitly pass the token to avoid edge cases.
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired authentication token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log(`Processing body scan for user: ${user.id}`);
-
-    const { images, height_cm, gender }: MeasurementRequest = await req.json();
-
-    if (!images || images.length === 0 || !height_cm) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields: images and height_cm" }),
+        JSON.stringify({ error: "Missing job_id" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
+    // Fetch job details
+    const { data: job, error: fetchError } = await supabase
+      .from("body_scan_jobs")
+      .select("*")
+      .eq("id", jobId)
+      .single();
+
+    if (fetchError || !job) {
+      console.error("Job not found:", fetchError);
       return new Response(
-        JSON.stringify({ error: "AI service is not configured. Please contact support." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Job not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Analyzing ${images.length} images for body measurements...`);
+    if (job.status !== "pending") {
+      console.log(`Job ${jobId} is not pending (status: ${job.status})`);
+      return new Response(
+        JSON.stringify({ message: "Job already processed or processing" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Mark as processing
+    await supabase
+      .from("body_scan_jobs")
+      .update({ status: "processing" })
+      .eq("id", jobId);
+
+    console.log(`Processing body scan job: ${jobId}`);
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    const images = job.images as string[];
+    const height_cm = job.height_cm;
+    const gender = job.gender;
 
     // Build image content for the AI model
-    const imageContent = images.slice(0, 8).map((img) => ({
+    const imageContent = images.slice(0, 8).map((img: string) => ({
       type: "image_url" as const,
       image_url: {
         url: img.startsWith("data:") ? img : `data:image/jpeg;base64,${img}`,
@@ -81,9 +87,9 @@ Given the person's stated height of ${height_cm}cm and gender (${gender}), analy
 
 You must be precise and provide realistic measurements based on body proportions visible in the images. Use the stated height as your primary reference for scale.
 
-    Output ONLY a valid JSON object (NO markdown, NO prose, NO code fences). Keep output concise.
-    The "notes" field MUST be an empty string ("") to prevent long text from truncating the JSON.
-    Use the following structure (all values in centimeters):
+Output ONLY a valid JSON object (NO markdown, NO prose, NO code fences). Keep output concise.
+The "notes" field MUST be an empty string ("") to prevent long text from truncating the JSON.
+Use the following structure (all values in centimeters):
 {
   "measurements": {
     "height": ${height_cm},
@@ -131,7 +137,7 @@ You must be precise and provide realistic measurements based on body proportions
     "suit_size": "<number>",
     "body_type": "<ectomorph/mesomorph/endomorph/balanced>"
   },
-      "notes": ""
+  "notes": ""
 }`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -163,20 +169,7 @@ You must be precise and provide realistic measurements based on body proportions
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI Gateway error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI usage limit reached. Please contact support." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      throw new Error(`AI analysis failed: ${errorText}`);
+      throw new Error(`AI analysis failed: ${response.status}`);
     }
 
     const aiResponse = await response.json();
@@ -186,29 +179,42 @@ You must be precise and provide realistic measurements based on body proportions
       throw new Error("No response from AI model");
     }
 
-    let measurements;
-    try {
-      measurements = parseJsonWithFallback(content);
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", content);
-      throw new Error("Failed to parse measurement data from AI response");
+    const measurements = parseJsonWithFallback(content);
+
+    // Update job with results
+    await supabase
+      .from("body_scan_jobs")
+      .update({
+        status: "completed",
+        result: measurements,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", jobId);
+
+    console.log(`Successfully completed job: ${jobId}`);
+
+    return new Response(
+      JSON.stringify({ success: true }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error: unknown) {
+    console.error("Error processing scan:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+    if (jobId) {
+      await supabase
+        .from("body_scan_jobs")
+        .update({
+          status: "failed",
+          error_message: errorMessage,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", jobId);
     }
 
-    console.log("Successfully extracted measurements");
-
-    return new Response(JSON.stringify(measurements), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error: unknown) {
-    console.error("Error analyzing measurements:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
