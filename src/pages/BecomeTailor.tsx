@@ -101,13 +101,14 @@ const BecomeTailor = () => {
           location: formData.location,
           description: formData.description,
           specialties: formData.specialties,
-          is_active: true,
+              is_active: true,
+              is_verified: false,
         });
 
       if (storeError) throw storeError;
 
-      toast.success("Congratulations! Your tailor store has been created.");
-      navigate("/store");
+          toast.success("Your application has been submitted! Your store is pending admin verification.");
+          navigate("/dashboard");
     } catch (error: any) {
       console.error("Error creating store:", error);
       toast.error(error.message || "Failed to create store");
@@ -299,7 +300,7 @@ const BecomeTailor = () => {
                   <div className="flex items-center gap-2 p-4 bg-primary/5 rounded-lg border border-primary/20">
                     <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
                     <p className="text-sm">
-                      You're almost there! Click "Create Store" to launch your tailor business.
+                        Your store application will be reviewed by our team. Once verified, you can start selling!
                     </p>
                   </div>
                 </div>
@@ -330,7 +331,7 @@ const BecomeTailor = () => {
                     disabled={isSubmitting}
                   >
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create Store
+                    Submit Application
                   </Button>
                 )}
               </div>
