@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import AIBodyScanner from "@/components/measurements/AIBodyScanner";
+import { BodyScanHistory } from "@/components/measurements/BodyScanHistory";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { HelpCircle } from "lucide-react";
@@ -34,6 +35,11 @@ const BodyScanner = () => {
             </div>
 
             <AIBodyScanner />
+
+            {/* Body Scan History */}
+            <div className="mt-8">
+              <BodyScanHistory />
+            </div>
 
             <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center p-6 border rounded-xl">

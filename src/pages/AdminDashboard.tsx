@@ -41,6 +41,7 @@ import AdminUsersTable from "@/components/admin/AdminUsersTable";
 import AdminOrdersTable from "@/components/admin/AdminOrdersTable";
 import AdminRefundsTable from "@/components/admin/AdminRefundsTable";
 import AdminLoyaltySection from "@/components/admin/AdminLoyaltySection";
+import AdminTailorsVerification from "@/components/admin/AdminTailorsVerification";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--terracotta))", "hsl(var(--success))", "hsl(var(--muted))"];
 
@@ -154,9 +155,13 @@ const AdminDashboard = () => {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+            <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="tailors">
+                <Store className="w-4 h-4 mr-1" />
+                Tailors
+              </TabsTrigger>
               <TabsTrigger value="orders">Orders</TabsTrigger>
               <TabsTrigger value="refunds">
                 Refunds
@@ -323,6 +328,11 @@ const AdminDashboard = () => {
                 tailors={tailors}
                 userRoles={userRoles}
               />
+            </TabsContent>
+
+            {/* Tailors Tab */}
+            <TabsContent value="tailors">
+              <AdminTailorsVerification />
             </TabsContent>
 
             {/* Orders Tab */}
