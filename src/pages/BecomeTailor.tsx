@@ -20,9 +20,12 @@ import {
   ArrowRight, 
   ArrowLeft,
   Loader2,
-  Sparkles
+  Sparkles,
+  Share2
 } from "lucide-react";
 import MultiSelectTags from "@/components/products/MultiSelectTags";
+import SocialLinksInput, { SocialLink } from "@/components/tailor/SocialLinksInput";
+import type { Json } from "@/integrations/supabase/types";
 
 const SPECIALTIES = [
   "Suits",
@@ -49,9 +52,10 @@ const BecomeTailor = () => {
     location: "",
     description: "",
     specialties: [] as string[],
+    socialLinks: [{ platform: "", url: "" }] as SocialLink[],
   });
 
-  const totalSteps = 4;
+  const totalSteps = 5;
   const progress = (step / totalSteps) * 100;
 
   const generateSlug = (name: string) => {
@@ -69,10 +73,22 @@ const BecomeTailor = () => {
     });
   };
 
+  const isValidSocialLinks = () => {
+    // At least one complete social link is required
+    return formData.socialLinks.some(
+      (link) => link.platform.trim() !== "" && link.url.trim() !== ""
+    );
+  };
+
   const handleSubmit = async () => {
     if (!user) {
       toast.error("Please sign in to continue");
       navigate("/auth");
+      return;
+    }
+
+    if (!isValidSocialLinks()) {
+      toast.error("Please add at least one social media link");
       return;
     }
 
@@ -91,6 +107,11 @@ const BecomeTailor = () => {
         throw roleError;
       }
 
+      // Filter out empty social links before saving
+      const validSocialLinks = formData.socialLinks.filter(
+        (link) => link.platform.trim() !== "" && link.url.trim() !== ""
+      );
+
       // Then create the tailor store
       const { error: storeError } = await supabase
         .from("tailors")
@@ -101,14 +122,15 @@ const BecomeTailor = () => {
           location: formData.location,
           description: formData.description,
           specialties: formData.specialties,
-              is_active: true,
-              is_verified: false,
+          social_links: validSocialLinks as unknown as Json,
+          is_active: true,
+          is_verified: false,
         });
 
       if (storeError) throw storeError;
 
-          toast.success("Your application has been submitted! Your store is pending admin verification.");
-          navigate("/dashboard");
+      toast.success("Your application has been submitted! Your store is pending admin verification.");
+      navigate("/dashboard");
     } catch (error: any) {
       console.error("Error creating store:", error);
       toast.error(error.message || "Failed to create store");
@@ -125,6 +147,8 @@ const BecomeTailor = () => {
         return formData.location.length >= 3;
       case 3:
         return formData.description.length >= 20 && formData.specialties.length >= 1;
+      case 4:
+        return isValidSocialLinks();
       default:
         return true;
     }
@@ -188,13 +212,15 @@ const BecomeTailor = () => {
                 {step === 1 && <><Store className="h-5 w-5" /> Store Name</>}
                 {step === 2 && <><MapPin className="h-5 w-5" /> Location</>}
                 {step === 3 && <><FileText className="h-5 w-5" /> About Your Store</>}
-                {step === 4 && <><CheckCircle className="h-5 w-5" /> Review & Create</>}
+                {step === 4 && <><Share2 className="h-5 w-5" /> Social Media</>}
+                {step === 5 && <><CheckCircle className="h-5 w-5" /> Review & Create</>}
               </CardTitle>
               <CardDescription>
                 {step === 1 && "Choose a unique name for your tailor store"}
                 {step === 2 && "Where is your store located?"}
                 {step === 3 && "Tell customers about your expertise"}
-                {step === 4 && "Review your store details before creating"}
+                {step === 4 && "Add your business social media links (minimum 1 required)"}
+                {step === 5 && "Review your store details before creating"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -273,6 +299,14 @@ const BecomeTailor = () => {
               )}
 
               {step === 4 && (
+                <SocialLinksInput
+                  value={formData.socialLinks}
+                  onChange={(socialLinks) => setFormData({ ...formData, socialLinks })}
+                  minRequired={1}
+                />
+              )}
+
+              {step === 5 && (
                 <div className="space-y-4">
                   <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                     <div>
@@ -295,12 +329,24 @@ const BecomeTailor = () => {
                       <span className="text-sm text-muted-foreground">Specialties</span>
                       <p className="font-medium">{formData.specialties.join(", ")}</p>
                     </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">Social Media</span>
+                      <div className="mt-1 space-y-1">
+                        {formData.socialLinks
+                          .filter((link) => link.platform && link.url)
+                          .map((link, index) => (
+                            <p key={index} className="font-medium text-sm capitalize">
+                              {link.platform}: {link.url}
+                            </p>
+                          ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2 p-4 bg-primary/5 rounded-lg border border-primary/20">
                     <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
                     <p className="text-sm">
-                        Your store application will be reviewed by our team. Once verified, you can start selling!
+                      Your store application will be reviewed by our team. Once verified, you can start selling!
                     </p>
                   </div>
                 </div>

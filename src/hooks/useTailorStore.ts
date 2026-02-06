@@ -19,6 +19,7 @@ export const useTailorStore = (storeSlug: string) => {
         .select("*")
         .eq("store_slug", storeSlug)
         .eq("is_active", true)
+        .eq("is_verified", true)
         .maybeSingle();
       if (error) throw error;
       return data as Tailor | null;

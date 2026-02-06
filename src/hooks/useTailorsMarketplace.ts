@@ -27,11 +27,12 @@ export const useTailorsMarketplace = (
   return useQuery({
     queryKey: ["tailors-marketplace", searchQuery, specialtyFilter, sortBy],
     queryFn: async () => {
-      // Fetch all active tailors
+      // Fetch all active AND verified tailors only
       const { data: tailors, error: tailorsError } = await supabase
         .from("tailors")
         .select("*")
         .eq("is_active", true)
+        .eq("is_verified", true)
         .order("rating", { ascending: false });
 
       if (tailorsError) throw tailorsError;
@@ -102,10 +103,12 @@ export const useAllSpecialties = () => {
   return useQuery({
     queryKey: ["all-specialties"],
     queryFn: async () => {
+      // Only get specialties from verified tailors
       const { data, error } = await supabase
         .from("tailors")
         .select("specialties")
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("is_verified", true);
 
       if (error) throw error;
 
