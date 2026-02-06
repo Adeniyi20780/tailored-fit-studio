@@ -900,6 +900,7 @@ export type Database = {
           location: string | null
           logo_url: string | null
           rating: number | null
+          social_links: Json | null
           specialties: string[] | null
           store_name: string
           store_slug: string
@@ -917,6 +918,7 @@ export type Database = {
           location?: string | null
           logo_url?: string | null
           rating?: number | null
+          social_links?: Json | null
           specialties?: string[] | null
           store_name: string
           store_slug: string
@@ -934,6 +936,7 @@ export type Database = {
           location?: string | null
           logo_url?: string | null
           rating?: number | null
+          social_links?: Json | null
           specialties?: string[] | null
           store_name?: string
           store_slug?: string

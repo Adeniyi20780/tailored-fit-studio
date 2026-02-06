@@ -56,8 +56,9 @@ const Auth = () => {
   const isRecoverySession = searchParams.get("type") === "recovery";
 
   // Redirect if already logged in (unless it's a recovery session)
+  // Customers go to homepage, not dashboard
   if (user && !isRecoverySession) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const handleGoogleSignIn = async () => {
