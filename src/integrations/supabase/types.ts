@@ -948,18 +948,21 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          admin_level: number | null
           created_at: string
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          admin_level?: number | null
           created_at?: string
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          admin_level?: number | null
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
@@ -1108,6 +1111,7 @@ export type Database = {
     }
     Functions: {
       create_first_admin: { Args: never; Returns: undefined }
+      get_admin_level: { Args: { _user_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

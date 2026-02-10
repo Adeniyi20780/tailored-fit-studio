@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useUserRole } from "@/hooks/useUserRole";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useAdminAnalytics } from "@/hooks/useAdminAnalytics";
@@ -46,6 +47,7 @@ import AdminTailorsVerification from "@/components/admin/AdminTailorsVerificatio
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--terracotta))", "hsl(var(--success))", "hsl(var(--muted))"];
 
 const AdminDashboard = () => {
+  const { adminLevel } = useUserRole();
   const { 
     stats, 
     revenueTrends, 
@@ -327,6 +329,7 @@ const AdminDashboard = () => {
                 profiles={profiles}
                 tailors={tailors}
                 userRoles={userRoles}
+                currentAdminLevel={adminLevel}
               />
             </TabsContent>
 

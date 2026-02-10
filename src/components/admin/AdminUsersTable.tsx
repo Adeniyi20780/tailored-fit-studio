@@ -44,30 +44,36 @@ interface UserRole {
   id: string;
   user_id: string;
   role: "admin" | "tailor" | "customer";
+  admin_level?: number | null;
 }
 
 interface AdminUsersTableProps {
   profiles: Profile[];
   tailors: Tailor[];
   userRoles: UserRole[];
+  currentAdminLevel: number | null;
 }
 
 type AppRole = "admin" | "tailor" | "customer";
 
 const ALL_ROLES: AppRole[] = ["admin", "tailor", "customer"];
 
-const AdminUsersTable = ({ profiles, tailors, userRoles }: AdminUsersTableProps) => {
+const AdminUsersTable = ({ profiles, tailors, userRoles, currentAdminLevel }: AdminUsersTableProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  const isLevel1 = currentAdminLevel === 1;
 
   const usersWithRoles = profiles.map((profile) => {
     const roles = userRoles
       .filter((r) => r.user_id === profile.user_id)
       .map((r) => r.role);
     const tailor = tailors.find((t) => t.user_id === profile.user_id);
-    return { ...profile, roles, tailor };
+    const adminRole = userRoles.find((r) => r.user_id === profile.user_id && r.role === "admin");
+    const userAdminLevel = adminRole?.admin_level ?? null;
+    return { ...profile, roles, tailor, adminLevel: userAdminLevel };
   });
 
   const filteredUsers = usersWithRoles.filter((user) => {
@@ -96,15 +102,19 @@ const AdminUsersTable = ({ profiles, tailors, userRoles }: AdminUsersTableProps)
     }
   };
 
-  const addRole = async (userId: string, role: AppRole) => {
+  const addRole = async (userId: string, role: AppRole, level?: number) => {
     const key = `${userId}-add-${role}`;
     setLoadingAction(key);
     try {
+      const insertData: any = { user_id: userId, role };
+      if (role === "admin" && level) {
+        insertData.admin_level = level;
+      }
       const { error } = await supabase
         .from("user_roles")
-        .insert({ user_id: userId, role });
+        .insert(insertData);
       if (error) throw error;
-      toast.success(`Added ${role} role successfully`);
+      toast.success(`Added ${role}${role === "admin" && level ? ` (Level ${level})` : ""} role successfully`);
       queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
     } catch (err: any) {
       toast.error(err.message || "Failed to add role");
@@ -135,6 +145,22 @@ const AdminUsersTable = ({ profiles, tailors, userRoles }: AdminUsersTableProps)
   const getMissingRoles = (currentRoles: AppRole[]) =>
     ALL_ROLES.filter((r) => !currentRoles.includes(r));
 
+  const canManageAdminRole = isLevel1;
+
+  const getAvailableRolesToAdd = (currentRoles: AppRole[]) => {
+    const missing = getMissingRoles(currentRoles);
+    if (!canManageAdminRole) {
+      return missing.filter((r) => r !== "admin");
+    }
+    return missing;
+  };
+
+  const getRemovableRoles = (currentRoles: AppRole[]) => {
+    if (!canManageAdminRole) {
+      return currentRoles.filter((r) => r !== "admin");
+    }
+    return currentRoles;
+  };
   return (
     <Card>
       <CardHeader>
@@ -189,7 +215,8 @@ const AdminUsersTable = ({ profiles, tailors, userRoles }: AdminUsersTableProps)
                 </TableRow>
               ) : (
                 filteredUsers.map((user) => {
-                  const missingRoles = getMissingRoles(user.roles);
+                  const addableRoles = getAvailableRolesToAdd(user.roles);
+                  const removableRoles = getRemovableRoles(user.roles);
                   return (
                     <TableRow key={user.id}>
                       <TableCell>
@@ -204,6 +231,9 @@ const AdminUsersTable = ({ profiles, tailors, userRoles }: AdminUsersTableProps)
                             <Badge key={role} variant={getRoleBadgeVariant(role)} className="flex items-center gap-1">
                               {getRoleIcon(role)}
                               {role}
+                              {role === "admin" && user.adminLevel && (
+                                <span className="ml-1 text-[10px] opacity-75">L{user.adminLevel}</span>
+                              )}
                             </Badge>
                           ))}
                           {user.roles.length === 0 && (
@@ -243,17 +273,53 @@ const AdminUsersTable = ({ profiles, tailors, userRoles }: AdminUsersTableProps)
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {missingRoles.length > 0 && missingRoles.map((role) => (
-                              <DropdownMenuItem
-                                key={`add-${role}`}
-                                onClick={() => addRole(user.user_id, role)}
-                                disabled={loadingAction === `${user.user_id}-add-${role}`}
-                              >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Add {role} role
-                              </DropdownMenuItem>
+                            {addableRoles.length > 0 && addableRoles.map((role) => (
+                              role === "admin" && isLevel1 ? (
+                                <DropdownMenuItem
+                                  key={`add-admin-l2`}
+                                  onClick={() => addRole(user.user_id, "admin", 2)}
+                                  disabled={loadingAction === `${user.user_id}-add-admin`}
+                                >
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Add admin role (Level 2)
+                                </DropdownMenuItem>
+                              ) : role !== "admin" ? (
+                                <DropdownMenuItem
+                                  key={`add-${role}`}
+                                  onClick={() => addRole(user.user_id, role)}
+                                  disabled={loadingAction === `${user.user_id}-add-${role}`}
+                                >
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Add {role} role
+                                </DropdownMenuItem>
+                              ) : null
                             ))}
-                            {user.roles.map((role) => (
+                            {isLevel1 && user.roles.includes("admin") && user.adminLevel === 2 && (
+                              <DropdownMenuItem
+                                onClick={async () => {
+                                  setLoadingAction(`${user.user_id}-upgrade`);
+                                  try {
+                                    const { error } = await supabase
+                                      .from("user_roles")
+                                      .update({ admin_level: 1 })
+                                      .eq("user_id", user.user_id)
+                                      .eq("role", "admin");
+                                    if (error) throw error;
+                                    toast.success("Upgraded to Level 1 admin");
+                                    queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
+                                  } catch (err: any) {
+                                    toast.error(err.message || "Failed to upgrade");
+                                  } finally {
+                                    setLoadingAction(null);
+                                  }
+                                }}
+                                disabled={loadingAction === `${user.user_id}-upgrade`}
+                              >
+                                <Shield className="w-4 h-4 mr-2" />
+                                Upgrade to Level 1
+                              </DropdownMenuItem>
+                            )}
+                            {removableRoles.map((role) => (
                               <DropdownMenuItem
                                 key={`remove-${role}`}
                                 onClick={() => removeRole(user.user_id, role)}
