@@ -51,13 +51,14 @@ interface RefundRequest {
 
 interface AdminRefundsTableProps {
   refundRequests: RefundRequest[];
+  currentAdminLevel: number | null;
 }
 
 const refundRequestsTable = () => supabase.from("refund_requests" as any);
 const walletsTable = () => supabase.from("wallets" as any);
 const walletTransactionsTable = () => supabase.from("wallet_transactions" as any);
 
-const AdminRefundsTable = ({ refundRequests }: AdminRefundsTableProps) => {
+const AdminRefundsTable = ({ refundRequests, currentAdminLevel }: AdminRefundsTableProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
@@ -226,7 +227,7 @@ const AdminRefundsTable = ({ refundRequests }: AdminRefundsTableProps) => {
                   <TableHead>Reason</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead className="w-[120px]">Actions</TableHead>
+                  <TableHead className="w-[120px]">{currentAdminLevel !== 3 ? "Actions" : "View"}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -266,7 +267,7 @@ const AdminRefundsTable = ({ refundRequests }: AdminRefundsTableProps) => {
                         {format(new Date(refund.created_at), "MMM d, yyyy")}
                       </TableCell>
                       <TableCell>
-                        {refund.status === "pending" ? (
+                        {refund.status === "pending" && currentAdminLevel !== 3 ? (
                           <Button
                             variant="outline"
                             size="sm"
@@ -352,7 +353,7 @@ const AdminRefundsTable = ({ refundRequests }: AdminRefundsTableProps) => {
                 </div>
               )}
 
-              {selectedRefund.status === "pending" ? (
+              {selectedRefund.status === "pending" && currentAdminLevel !== 3 ? (
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Admin Notes</p>
                   <Textarea
@@ -378,7 +379,7 @@ const AdminRefundsTable = ({ refundRequests }: AdminRefundsTableProps) => {
               )}
             </div>
           )}
-          {selectedRefund?.status === "pending" && (
+          {selectedRefund?.status === "pending" && currentAdminLevel !== 3 && (
             <DialogFooter className="gap-2">
               <Button
                 variant="destructive"

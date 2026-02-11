@@ -44,9 +44,10 @@ interface Order {
 
 interface AdminOrdersTableProps {
   orders: Order[];
+  currentAdminLevel: number | null;
 }
 
-const AdminOrdersTable = ({ orders }: AdminOrdersTableProps) => {
+const AdminOrdersTable = ({ orders, currentAdminLevel }: AdminOrdersTableProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
