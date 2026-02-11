@@ -65,6 +65,7 @@ const AdminUsersTable = ({ profiles, tailors, userRoles, currentAdminLevel }: Ad
   const queryClient = useQueryClient();
 
   const isLevel1 = currentAdminLevel === 1;
+  const isLevel3 = currentAdminLevel === 3;
 
   const usersWithRoles = profiles.map((profile) => {
     const roles = userRoles
@@ -146,8 +147,10 @@ const AdminUsersTable = ({ profiles, tailors, userRoles, currentAdminLevel }: Ad
     ALL_ROLES.filter((r) => !currentRoles.includes(r));
 
   const canManageAdminRole = isLevel1;
+  const canManageRoles = !isLevel3; // Level 3 is read-only
 
   const getAvailableRolesToAdd = (currentRoles: AppRole[]) => {
+    if (!canManageRoles) return [];
     const missing = getMissingRoles(currentRoles);
     if (!canManageAdminRole) {
       return missing.filter((r) => r !== "admin");
@@ -156,6 +159,7 @@ const AdminUsersTable = ({ profiles, tailors, userRoles, currentAdminLevel }: Ad
   };
 
   const getRemovableRoles = (currentRoles: AppRole[]) => {
+    if (!canManageRoles) return [];
     if (!canManageAdminRole) {
       return currentRoles.filter((r) => r !== "admin");
     }
@@ -203,13 +207,13 @@ const AdminUsersTable = ({ profiles, tailors, userRoles, currentAdminLevel }: Ad
                 <TableHead>Store</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Joined</TableHead>
-                <TableHead>Actions</TableHead>
+                {!isLevel3 && <TableHead>Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={isLevel3 ? 5 : 6} className="text-center py-8 text-muted-foreground">
                     No users found
                   </TableCell>
                 </TableRow>
@@ -265,74 +269,82 @@ const AdminUsersTable = ({ profiles, tailors, userRoles, currentAdminLevel }: Ad
                       <TableCell className="text-muted-foreground">
                         {format(new Date(user.created_at), "MMM d, yyyy")}
                       </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {addableRoles.length > 0 && addableRoles.map((role) => (
-                              role === "admin" && isLevel1 ? (
+                      {!isLevel3 && (
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {addableRoles.length > 0 && addableRoles.map((role) => (
+                                role === "admin" && isLevel1 ? (
+                                  [2, 3].map((level) => (
+                                    <DropdownMenuItem
+                                      key={`add-admin-l${level}`}
+                                      onClick={() => addRole(user.user_id, "admin", level)}
+                                      disabled={loadingAction === `${user.user_id}-add-admin`}
+                                    >
+                                      <Plus className="w-4 h-4 mr-2" />
+                                      Add admin role (Level {level}{level === 3 ? " - Read Only" : ""})
+                                    </DropdownMenuItem>
+                                  ))
+                                ) : role !== "admin" ? (
+                                  <DropdownMenuItem
+                                    key={`add-${role}`}
+                                    onClick={() => addRole(user.user_id, role)}
+                                    disabled={loadingAction === `${user.user_id}-add-${role}`}
+                                  >
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Add {role} role
+                                  </DropdownMenuItem>
+                                ) : null
+                              ))}
+                              {isLevel1 && user.roles.includes("admin") && user.adminLevel && user.adminLevel > 1 && (
+                                [1, 2, 3].filter(l => l !== user.adminLevel).map((targetLevel) => (
+                                  <DropdownMenuItem
+                                    key={`change-level-${targetLevel}`}
+                                    onClick={async () => {
+                                      setLoadingAction(`${user.user_id}-upgrade`);
+                                      try {
+                                        const { error } = await supabase
+                                          .from("user_roles")
+                                          .update({ admin_level: targetLevel })
+                                          .eq("user_id", user.user_id)
+                                          .eq("role", "admin");
+                                        if (error) throw error;
+                                        toast.success(`Changed to Level ${targetLevel} admin`);
+                                        queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
+                                      } catch (err: any) {
+                                        toast.error(err.message || "Failed to change level");
+                                      } finally {
+                                        setLoadingAction(null);
+                                      }
+                                    }}
+                                    disabled={loadingAction === `${user.user_id}-upgrade`}
+                                  >
+                                    <Shield className="w-4 h-4 mr-2" />
+                                    {targetLevel < user.adminLevel! ? "Upgrade" : "Downgrade"} to Level {targetLevel}
+                                    {targetLevel === 3 ? " (Read Only)" : ""}
+                                  </DropdownMenuItem>
+                                ))
+                              )}
+                              {removableRoles.map((role) => (
                                 <DropdownMenuItem
-                                  key={`add-admin-l2`}
-                                  onClick={() => addRole(user.user_id, "admin", 2)}
-                                  disabled={loadingAction === `${user.user_id}-add-admin`}
+                                  key={`remove-${role}`}
+                                  onClick={() => removeRole(user.user_id, role)}
+                                  disabled={loadingAction === `${user.user_id}-remove-${role}`}
+                                  className="text-destructive"
                                 >
-                                  <Plus className="w-4 h-4 mr-2" />
-                                  Add admin role (Level 2)
+                                  <Minus className="w-4 h-4 mr-2" />
+                                  Remove {role} role
                                 </DropdownMenuItem>
-                              ) : role !== "admin" ? (
-                                <DropdownMenuItem
-                                  key={`add-${role}`}
-                                  onClick={() => addRole(user.user_id, role)}
-                                  disabled={loadingAction === `${user.user_id}-add-${role}`}
-                                >
-                                  <Plus className="w-4 h-4 mr-2" />
-                                  Add {role} role
-                                </DropdownMenuItem>
-                              ) : null
-                            ))}
-                            {isLevel1 && user.roles.includes("admin") && user.adminLevel === 2 && (
-                              <DropdownMenuItem
-                                onClick={async () => {
-                                  setLoadingAction(`${user.user_id}-upgrade`);
-                                  try {
-                                    const { error } = await supabase
-                                      .from("user_roles")
-                                      .update({ admin_level: 1 })
-                                      .eq("user_id", user.user_id)
-                                      .eq("role", "admin");
-                                    if (error) throw error;
-                                    toast.success("Upgraded to Level 1 admin");
-                                    queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
-                                  } catch (err: any) {
-                                    toast.error(err.message || "Failed to upgrade");
-                                  } finally {
-                                    setLoadingAction(null);
-                                  }
-                                }}
-                                disabled={loadingAction === `${user.user_id}-upgrade`}
-                              >
-                                <Shield className="w-4 h-4 mr-2" />
-                                Upgrade to Level 1
-                              </DropdownMenuItem>
-                            )}
-                            {removableRoles.map((role) => (
-                              <DropdownMenuItem
-                                key={`remove-${role}`}
-                                onClick={() => removeRole(user.user_id, role)}
-                                disabled={loadingAction === `${user.user_id}-remove-${role}`}
-                                className="text-destructive"
-                              >
-                                <Minus className="w-4 h-4 mr-2" />
-                                Remove {role} role
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })
