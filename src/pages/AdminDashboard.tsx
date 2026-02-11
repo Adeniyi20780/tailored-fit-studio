@@ -335,17 +335,17 @@ const AdminDashboard = () => {
 
             {/* Tailors Tab */}
             <TabsContent value="tailors">
-              <AdminTailorsVerification />
+              <AdminTailorsVerification currentAdminLevel={adminLevel} />
             </TabsContent>
 
             {/* Orders Tab */}
             <TabsContent value="orders">
-              <AdminOrdersTable orders={orders} />
+              <AdminOrdersTable orders={orders} currentAdminLevel={adminLevel} />
             </TabsContent>
 
             {/* Refunds Tab */}
             <TabsContent value="refunds">
-              <AdminRefundsTable refundRequests={refundRequests} />
+              <AdminRefundsTable refundRequests={refundRequests} currentAdminLevel={adminLevel} />
             </TabsContent>
 
             {/* Loyalty Tab */}

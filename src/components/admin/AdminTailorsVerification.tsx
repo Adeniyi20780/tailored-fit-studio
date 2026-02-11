@@ -48,7 +48,7 @@
    created_at: string;
  }
  
- export default function AdminTailorsVerification() {
+ export default function AdminTailorsVerification({ currentAdminLevel }: { currentAdminLevel: number | null }) {
    const queryClient = useQueryClient();
    const [search, setSearch] = useState("");
    const [selectedTailor, setSelectedTailor] = useState<Tailor | null>(null);
@@ -263,50 +263,50 @@
                        <TableCell className="text-sm text-muted-foreground">
                          {format(new Date(tailor.created_at), "MMM d, yyyy")}
                        </TableCell>
-                       <TableCell className="text-right">
-                         <div className="flex items-center justify-end gap-2">
-                           <Button
-                             variant="outline"
-                             size="sm"
-                             onClick={() => setSelectedTailor(tailor)}
-                           >
-                             <Eye className="w-4 h-4" />
-                           </Button>
-                           {tailor.is_active && !tailor.is_verified && (
-                             <>
-                               <Button
-                                 size="sm"
-                                 onClick={() => verifyMutation.mutate({ tailorId: tailor.id, verified: true })}
-                                 disabled={verifyMutation.isPending}
-                               >
-                                 <CheckCircle className="w-4 h-4 mr-1" />
-                                 Verify
-                               </Button>
-                               <Button
-                                 variant="destructive"
-                                 size="sm"
-                                 onClick={() => {
-                                   setSelectedTailor(tailor);
-                                   setShowRejectDialog(true);
-                                 }}
-                               >
-                                 <XCircle className="w-4 h-4 mr-1" />
-                                 Reject
-                               </Button>
-                             </>
-                           )}
-                           {tailor.is_verified && (
-                             <Button
-                               variant="outline"
-                               size="sm"
-                               onClick={() => verifyMutation.mutate({ tailorId: tailor.id, verified: false })}
-                               disabled={verifyMutation.isPending}
-                             >
-                               Revoke
-                             </Button>
-                           )}
-                         </div>
-                       </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedTailor(tailor)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {currentAdminLevel !== 3 && tailor.is_active && !tailor.is_verified && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => verifyMutation.mutate({ tailorId: tailor.id, verified: true })}
+                                  disabled={verifyMutation.isPending}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-1" />
+                                  Verify
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedTailor(tailor);
+                                    setShowRejectDialog(true);
+                                  }}
+                                >
+                                  <XCircle className="w-4 h-4 mr-1" />
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                            {currentAdminLevel !== 3 && tailor.is_verified && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => verifyMutation.mutate({ tailorId: tailor.id, verified: false })}
+                                disabled={verifyMutation.isPending}
+                              >
+                                Revoke
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
                      </TableRow>
                    ))
                  )}
