@@ -20,9 +20,9 @@ export interface RefundRequest {
   updated_at: string;
 }
 
-const refundRequestsTable = () => supabase.from("refund_requests" as any);
-const walletsTable = () => supabase.from("wallets" as any);
-const walletTransactionsTable = () => supabase.from("wallet_transactions" as any);
+const refundRequestsTable = () => supabase.from("refund_requests");
+const walletsTable = () => supabase.from("wallets");
+const walletTransactionsTable = () => supabase.from("wallet_transactions");
 
 export const useRefundRequests = () => {
   const { user } = useAuth();
