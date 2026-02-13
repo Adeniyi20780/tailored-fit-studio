@@ -209,12 +209,63 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Verify the user's identity
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const data: AlterationNotificationRequest = await req.json();
 
     if (!data.ticketId || !data.customerEmail || !data.status) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Verify the user has permission for this ticket (must be customer or tailor)
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: ticket, error: ticketError } = await serviceClient
+      .from("alteration_tickets")
+      .select(`
+        id,
+        customer_id,
+        tailor_id,
+        tailors!inner(user_id)
+      `)
+      .eq("id", data.ticketId)
+      .single();
+
+    if (ticketError || !ticket) {
+      return new Response(
+        JSON.stringify({ error: "Ticket not found" }),
+        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const isCustomer = ticket.customer_id === user.id;
+    const isTailor = (ticket.tailors as any)?.user_id === user.id;
+
+    if (!isCustomer && !isTailor) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -238,7 +289,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (!emailResponse.ok) {
       console.error("Resend API error:", emailResult);
       return new Response(
-        JSON.stringify({ success: false, error: emailResult.message || "Failed to send email" }),
+        JSON.stringify({ success: false, error: "Failed to send email" }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -250,10 +301,9 @@ const handler = async (req: Request): Promise<Response> => {
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Error in send-alteration-notification function:", error);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
