@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Scissors, Heart, User, LogOut, Package, Store, UserCircle, Shield, Bell, Crown, Ruler } from "lucide-react";
+import { Menu, X, Scissors, Heart, User, LogOut, Package, Store, UserCircle, Shield, Bell, Crown, Ruler, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -111,6 +111,12 @@ const Header = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
+                    <Link to="/messages" className="cursor-pointer">
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Messages
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link to="/body-scanner" className="cursor-pointer">
                       <Ruler className="w-4 h-4 mr-2" />
                       AI Body Scanner
@@ -207,6 +213,12 @@ const Header = () => {
                         <Button variant="outline" className="w-full justify-start">
                           <Package className="w-4 h-4 mr-2" />
                           My Orders
+                        </Button>
+                      </Link>
+                      <Link to="/messages" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="w-full justify-start">
+                          <MessageCircle className="w-4 h-4 mr-2" />
+                          Messages
                         </Button>
                       </Link>
                       <Link to="/notifications" onClick={() => setIsOpen(false)}>
