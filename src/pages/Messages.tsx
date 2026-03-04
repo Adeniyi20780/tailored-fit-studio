@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   MessageCircle, ArrowLeft, Send, Loader2, Search, Inbox, 
   Send as SendIcon, Mail, MailOpen, Trash2, Archive, ArchiveRestore,
-  MailWarning, Eye, EyeOff
+  MailWarning, Eye, EyeOff, ShoppingBag
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAllConversations, useSellerMessages } from "@/hooks/useSellerMessages";
 import { useConversationActions } from "@/hooks/useConversationActions";
 import { format, isToday, isYesterday } from "date-fns";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 const formatMessageDate = (dateStr: string) => {
   const date = new Date(dateStr);
@@ -40,6 +40,16 @@ const Messages = () => {
   const [selectedConv, setSelectedConv] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>("inbox");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams] = useSearchParams();
+
+  // Auto-open conversation from URL param (e.g. from notification click)
+  useEffect(() => {
+    const convId = searchParams.get("conversation");
+    if (convId && conversations.length > 0 && !selectedConv) {
+      const found = conversations.find((c) => c.conversation_id === convId);
+      if (found) setSelectedConv(found);
+    }
+  }, [searchParams, conversations, selectedConv]);
   const { archivedIds, markAsRead, markAsUnread, archiveConversation, unarchiveConversation } = useConversationActions();
 
   const filteredConversations = conversations.filter((conv) => {
@@ -250,6 +260,7 @@ const Messages = () => {
                   const isMine = conv.sender_id === user?.id;
                   const hasUnread = conv.unread_count > 0;
                   const isArchived = archivedIds.includes(conv.conversation_id);
+                  const senderFirstName = conv.other_user_name?.split(" ")[0] || "Someone";
                   return (
                     <button
                       key={conv.conversation_id}
@@ -266,14 +277,14 @@ const Messages = () => {
                         {tailor?.logo_url ? (
                           <img src={tailor.logo_url} alt={tailor.store_name} className="w-full h-full object-cover" />
                         ) : (
-                          <MessageCircle className="h-5 w-5 text-primary" />
+                          <span className="text-sm font-bold text-primary">{senderFirstName.charAt(0).toUpperCase()}</span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 min-w-0">
                             <p className={`text-sm truncate ${hasUnread ? "font-bold text-foreground" : "font-medium text-foreground"}`}>
-                              {tailor?.store_name || "Seller"}
+                              {senderFirstName}
                             </p>
                             {isArchived && (
                               <Badge variant="secondary" className="text-[9px] h-4 px-1 shrink-0">
@@ -285,7 +296,13 @@ const Messages = () => {
                             {formatMessageDate(conv.created_at)}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between mt-1">
+                        {conv.product_name && (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <ShoppingBag className="h-3 w-3 text-muted-foreground shrink-0" />
+                            <p className="text-[11px] text-muted-foreground truncate">{conv.product_name}</p>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between mt-0.5">
                           <p className={`text-xs truncate ${hasUnread ? "text-foreground font-medium" : "text-muted-foreground"}`}>
                             {isMine ? "You: " : ""}{conv.content}
                           </p>

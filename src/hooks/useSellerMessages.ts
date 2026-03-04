@@ -141,7 +141,50 @@ export const useAllConversations = () => {
         }
       }
 
-      return Array.from(convMap.values());
+      const convList = Array.from(convMap.values());
+
+      // Fetch sender profiles (the other party's name)
+      const otherUserIds = Array.from(
+        new Set(
+          convList.map((c) =>
+            c.sender_id === user.id ? c.receiver_id : c.sender_id
+          )
+        )
+      );
+      let profilesMap: Record<string, string> = {};
+      if (otherUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", otherUserIds);
+        for (const p of profiles || []) {
+          profilesMap[p.user_id] = p.full_name || "Customer";
+        }
+      }
+
+      // Fetch product names for conversations that have a product_id
+      const productIds = Array.from(
+        new Set(convList.map((c) => c.product_id).filter(Boolean))
+      );
+      let productsMap: Record<string, string> = {};
+      if (productIds.length > 0) {
+        const { data: products } = await supabase
+          .from("products")
+          .select("id, name")
+          .in("id", productIds);
+        for (const p of products || []) {
+          productsMap[p.id] = p.name;
+        }
+      }
+
+      return convList.map((conv) => {
+        const otherId = conv.sender_id === user.id ? conv.receiver_id : conv.sender_id;
+        return {
+          ...conv,
+          other_user_name: profilesMap[otherId] || "Customer",
+          product_name: conv.product_id ? productsMap[conv.product_id] || null : null,
+        };
+      });
     },
     enabled: !!user,
   });
