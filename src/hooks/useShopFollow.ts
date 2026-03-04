@@ -27,22 +27,36 @@ export const useShopFollow = (tailorId: string | undefined) => {
     mutationFn: async () => {
       if (!user || !tailorId) throw new Error("Not authenticated");
 
-      if (isFollowing) {
+      // Re-check current state to avoid stale data
+      const { data: existing } = await supabase
+        .from("shop_follows")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("tailor_id", tailorId)
+        .maybeSingle();
+
+      if (existing) {
         const { error } = await supabase
           .from("shop_follows")
           .delete()
           .eq("user_id", user.id)
           .eq("tailor_id", tailorId);
         if (error) throw error;
+        return "unfollowed";
       } else {
         const { error } = await supabase
           .from("shop_follows")
           .insert({ user_id: user.id, tailor_id: tailorId });
         if (error) throw error;
+        return "followed";
       }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["shop-follow", user?.id, tailorId] });
+      toast({
+        title: result === "followed" ? "Following!" : "Unfollowed",
+        description: result === "followed" ? "You'll see updates from this shop" : "You've unfollowed this shop",
+      });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update follow status", variant: "destructive" });

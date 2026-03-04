@@ -10,6 +10,7 @@ import CustomerDemographics from "@/components/store/CustomerDemographics";
 import TailorRefundsSection from "@/components/store/TailorRefundsSection";
 import { TailorAlterationsSection } from "@/components/store/TailorAlterationsSection";
 import IncomingOrdersWidget from "@/components/store/IncomingOrdersWidget";
+import TailorMessagesInbox from "@/components/store/TailorMessagesInbox";
 import Header from "@/components/layout/Header";
 import {
   DollarSign,
@@ -138,6 +139,13 @@ const Store = () => {
           <div className="grid gap-6 lg:grid-cols-2 mb-8">
             <TailorRefundsSection tailorId={tailor.id} />
             <TailorAlterationsSection tailorId={tailor.id} />
+          </div>
+        )}
+
+        {/* Customer Messages */}
+        {tailor?.id && (
+          <div className="mb-8">
+            <TailorMessagesInbox tailorId={tailor.id} />
           </div>
         )}
 
