@@ -1,15 +1,20 @@
-import { useState } from "react";
-import { MessageCircle, ArrowLeft, Send, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import {
+  MessageCircle, ArrowLeft, Send, Loader2, Search, Inbox, Star,
+  Send as SendIcon, Mail, MailOpen, Trash2, Archive, Tag, CheckSquare,
+  MailWarning, Filter
+} from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAllConversations, useSellerMessages } from "@/hooks/useSellerMessages";
 import { format, isToday, isYesterday } from "date-fns";
-import { useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 const formatMessageDate = (dateStr: string) => {
@@ -19,74 +24,227 @@ const formatMessageDate = (dateStr: string) => {
   return format(date, "MMM d");
 };
 
+type FilterType = "inbox" | "unread" | "sent" | "all" | "archived";
+
+const sidebarItems: { key: FilterType; label: string; icon: React.ElementType }[] = [
+  { key: "inbox", label: "Inbox", icon: Inbox },
+  { key: "unread", label: "Unread", icon: Mail },
+  { key: "sent", label: "Sent", icon: SendIcon },
+  { key: "all", label: "All", icon: MailOpen },
+  { key: "archived", label: "Archive", icon: Archive },
+];
+
 const Messages = () => {
   const { user } = useAuth();
   const { conversations, isLoading } = useAllConversations();
   const [selectedConv, setSelectedConv] = useState<any>(null);
+  const [activeFilter, setActiveFilter] = useState<FilterType>("inbox");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredConversations = conversations.filter((conv) => {
+    const matchesSearch = searchQuery
+      ? conv.tailors?.store_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        conv.content?.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
+
+    switch (activeFilter) {
+      case "unread":
+        return matchesSearch && conv.unread_count > 0;
+      case "sent":
+        return matchesSearch && conv.sender_id === user?.id;
+      case "all":
+        return matchesSearch;
+      case "inbox":
+      default:
+        return matchesSearch;
+    }
+  });
+
+  const unreadTotal = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="flex-1 pt-20">
         <div className="container mx-auto px-4 py-6">
-          <h1 className="text-2xl font-display font-bold text-foreground mb-6">Messages</h1>
+          {/* Top bar */}
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-display font-bold text-foreground">Messages</h1>
+            <div className="relative w-72 hidden sm:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search your messages"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
 
-          <div className="border border-border rounded-xl overflow-hidden flex" style={{ height: "calc(100vh - 220px)" }}>
-            {/* Conversation list */}
-            <div className={`w-full md:w-96 border-r border-border flex flex-col ${selectedConv ? "hidden md:flex" : "flex"}`}>
-              <div className="p-4 border-b border-border">
-                <p className="text-sm font-medium text-muted-foreground">All Conversations</p>
+          <div
+            className="border border-border rounded-xl overflow-hidden flex bg-card"
+            style={{ height: "calc(100vh - 220px)" }}
+          >
+            {/* Sidebar */}
+            <div className="w-52 border-r border-border flex-col hidden md:flex">
+              <ScrollArea className="flex-1 py-2">
+                {sidebarItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeFilter === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => setActiveFilter(item.key)}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                        isActive
+                          ? "bg-primary/10 text-primary font-semibold"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="flex-1 text-left">{item.label}</span>
+                      {item.key === "inbox" && unreadTotal > 0 && (
+                        <Badge variant="default" className="h-5 min-w-5 text-[10px] px-1.5">
+                          {unreadTotal}
+                        </Badge>
+                      )}
+                      {item.key === "unread" && unreadTotal > 0 && (
+                        <span className="text-xs">{unreadTotal}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </ScrollArea>
+            </div>
+
+            {/* Conversation list + toolbar */}
+            <div
+              className={`w-full md:w-80 lg:w-96 border-r border-border flex flex-col ${
+                selectedConv ? "hidden md:flex" : "flex"
+              }`}
+            >
+              {/* Toolbar */}
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-border text-muted-foreground">
+                <Button variant="ghost" size="sm" className="text-xs gap-1.5 h-8">
+                  <MailOpen className="h-3.5 w-3.5" />
+                  Mark Read
+                </Button>
+                <Button variant="ghost" size="sm" className="text-xs gap-1.5 h-8">
+                  <Archive className="h-3.5 w-3.5" />
+                  Archive
+                </Button>
+                <Button variant="ghost" size="sm" className="text-xs gap-1.5 h-8">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </Button>
               </div>
+
+              {/* Mobile search */}
+              <div className="p-3 border-b border-border sm:hidden">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search messages…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+
+              {/* Mobile filter tabs */}
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-border md:hidden overflow-x-auto">
+                {sidebarItems.map((item) => (
+                  <Button
+                    key={item.key}
+                    variant={activeFilter === item.key ? "default" : "ghost"}
+                    size="sm"
+                    className="text-xs h-7 shrink-0"
+                    onClick={() => setActiveFilter(item.key)}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </div>
+
               <ScrollArea className="flex-1">
                 {isLoading && (
                   <div className="flex justify-center py-12">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 )}
-                {!isLoading && conversations.length === 0 && (
+                {!isLoading && filteredConversations.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                    <MessageCircle className="h-12 w-12 text-muted-foreground/40 mb-4" />
-                    <p className="text-foreground font-medium">No messages yet</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Start a conversation from any product page
+                    <div className="relative mb-6">
+                      <MessageCircle className="h-16 w-16 text-muted-foreground/20" />
+                      <MailWarning className="h-8 w-8 text-muted-foreground/30 absolute -bottom-1 -right-1" />
+                    </div>
+                    <p className="text-foreground font-medium text-lg">No conversations to see here!</p>
+                    <p className="text-sm text-muted-foreground mt-2 max-w-xs">
+                      Start a conversation by messaging a seller from any product page
                     </p>
                     <Link to="/catalog">
-                      <Button variant="outline" className="mt-4">Browse Products</Button>
+                      <Button variant="outline" className="mt-4">
+                        Browse Products
+                      </Button>
                     </Link>
                   </div>
                 )}
-                {conversations.map((conv) => {
+                {filteredConversations.map((conv) => {
                   const tailor = conv.tailors;
                   const isActive = selectedConv?.conversation_id === conv.conversation_id;
                   const isMine = conv.sender_id === user?.id;
+                  const hasUnread = conv.unread_count > 0;
                   return (
                     <button
                       key={conv.conversation_id}
-                      className={`w-full flex items-center gap-3 p-4 text-left hover:bg-muted/50 transition-colors border-b border-border/50 ${isActive ? "bg-muted" : ""}`}
+                      className={`w-full flex items-start gap-3 p-4 text-left transition-colors border-b border-border/50 ${
+                        isActive
+                          ? "bg-primary/5 border-l-2 border-l-primary"
+                          : hasUnread
+                          ? "bg-muted/30 hover:bg-muted/50"
+                          : "hover:bg-muted/50"
+                      }`}
                       onClick={() => setSelectedConv(conv)}
                     >
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0 mt-0.5">
                         {tailor?.logo_url ? (
-                          <img src={tailor.logo_url} alt={tailor.store_name} className="w-full h-full object-cover" />
+                          <img
+                            src={tailor.logo_url}
+                            alt={tailor.store_name}
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <MessageCircle className="h-5 w-5 text-primary" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="font-medium text-foreground text-sm truncate">
+                          <p
+                            className={`text-sm truncate ${
+                              hasUnread ? "font-bold text-foreground" : "font-medium text-foreground"
+                            }`}
+                          >
                             {tailor?.store_name || "Seller"}
                           </p>
                           <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
                             {formatMessageDate(conv.created_at)}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between mt-0.5">
-                          <p className="text-xs text-muted-foreground truncate">
-                            {isMine ? "You: " : ""}{conv.content}
+                        <div className="flex items-center justify-between mt-1">
+                          <p
+                            className={`text-xs truncate ${
+                              hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
+                            }`}
+                          >
+                            {isMine ? "You: " : ""}
+                            {conv.content}
                           </p>
-                          {conv.unread_count > 0 && (
-                            <Badge variant="default" className="ml-2 h-5 min-w-5 text-[10px] px-1.5 shrink-0">
+                          {hasUnread && (
+                            <Badge
+                              variant="default"
+                              className="ml-2 h-5 min-w-5 text-[10px] px-1.5 shrink-0 rounded-full"
+                            >
                               {conv.unread_count}
                             </Badge>
                           )}
@@ -101,16 +259,16 @@ const Messages = () => {
             {/* Chat area */}
             <div className={`flex-1 flex flex-col ${selectedConv ? "flex" : "hidden md:flex"}`}>
               {selectedConv ? (
-                <ChatPanel
-                  conv={selectedConv}
-                  onBack={() => setSelectedConv(null)}
-                />
+                <ChatPanel conv={selectedConv} onBack={() => setSelectedConv(null)} />
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-                  <MessageCircle className="h-16 w-16 text-muted-foreground/30 mb-4" />
-                  <p className="text-foreground font-medium">Select a conversation</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Choose a conversation from the left to view messages
+                  <div className="relative mb-6">
+                    <MessageCircle className="h-20 w-20 text-muted-foreground/15" />
+                    <Mail className="h-10 w-10 text-muted-foreground/25 absolute -bottom-2 -right-2" />
+                  </div>
+                  <p className="text-foreground font-semibold text-lg">No conversations to see here!</p>
+                  <p className="text-sm text-muted-foreground mt-2 max-w-sm">
+                    Select a conversation from the list or start a new one from a product page
                   </p>
                 </div>
               )}
@@ -135,15 +293,11 @@ const ChatPanel = ({ conv, onBack }: { conv: any; onBack: () => void }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Determine receiver: if I'm the tailor's user, receiver is the other party
   const receiverId = tailor?.user_id === user?.id ? conv.sender_id : tailor?.user_id;
 
   const handleSend = () => {
     if (!message.trim()) return;
-    sendMessage(
-      { content: message.trim(), receiverId },
-      { onSuccess: () => setMessage("") }
-    );
+    sendMessage({ content: message.trim(), receiverId }, { onSuccess: () => setMessage("") });
   };
 
   return (
@@ -161,12 +315,16 @@ const ChatPanel = ({ conv, onBack }: { conv: any; onBack: () => void }) => {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-foreground text-sm truncate">{tailor?.store_name || "Seller"}</p>
+          <p className="font-semibold text-foreground text-sm truncate">
+            {tailor?.store_name || "Seller"}
+          </p>
           <p className="text-[11px] text-muted-foreground">Typically responds within a few hours</p>
         </div>
         {tailor?.store_slug && (
           <Link to={`/tailor/${tailor.store_slug}`}>
-            <Button variant="outline" size="sm">View Shop</Button>
+            <Button variant="outline" size="sm">
+              View Shop
+            </Button>
           </Link>
         )}
       </div>
@@ -179,7 +337,6 @@ const ChatPanel = ({ conv, onBack }: { conv: any; onBack: () => void }) => {
           </div>
         )}
 
-        {/* Policy reminder */}
         <div className="rounded-lg bg-muted/50 p-3 mb-4">
           <p className="text-xs text-muted-foreground text-center">
             Keep conversations professional. Do not share payment details outside the platform.
@@ -199,7 +356,11 @@ const ChatPanel = ({ conv, onBack }: { conv: any; onBack: () => void }) => {
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                  <p className={`text-[10px] mt-1 ${isMine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                  <p
+                    className={`text-[10px] mt-1 ${
+                      isMine ? "text-primary-foreground/70" : "text-muted-foreground"
+                    }`}
+                  >
                     {format(new Date(msg.created_at), "h:mm a")}
                   </p>
                 </div>
@@ -226,7 +387,12 @@ const ChatPanel = ({ conv, onBack }: { conv: any; onBack: () => void }) => {
               }
             }}
           />
-          <Button size="icon" onClick={handleSend} disabled={!message.trim() || isSending} className="shrink-0 self-end">
+          <Button
+            size="icon"
+            onClick={handleSend}
+            disabled={!message.trim() || isSending}
+            className="shrink-0 self-end"
+          >
             {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
