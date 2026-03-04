@@ -2,13 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 export const useSellerMessages = (tailorId: string | undefined) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Build a deterministic conversation_id
   const getConversationId = (tailorDbId: string) => {
     if (!user) return "";
     return `conv_${[user.id, tailorDbId].sort().join("_")}`;
@@ -30,6 +30,31 @@ export const useSellerMessages = (tailorId: string | undefined) => {
     },
     enabled: !!user && !!conversationId,
   });
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!user || !conversationId) return;
+
+    const channel = supabase
+      .channel(`seller-messages-${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "seller_messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["seller-messages", conversationId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, conversationId, queryClient]);
 
   const sendMessage = useMutation({
     mutationFn: async ({
@@ -78,4 +103,76 @@ export const useSellerMessages = (tailorId: string | undefined) => {
     isSending: sendMessage.isPending,
     conversationId,
   };
+};
+
+// Hook for fetching all conversations for the current user
+export const useAllConversations = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const { data: conversations = [], isLoading } = useQuery({
+    queryKey: ["all-conversations", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
+      // Get all messages where user is sender or receiver, grouped by conversation
+      const { data, error } = await supabase
+        .from("seller_messages")
+        .select("*, tailors:tailor_id(id, store_name, logo_url, store_slug, user_id)")
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Group by conversation_id, keep latest message
+      const convMap = new Map<string, any>();
+      for (const msg of data || []) {
+        if (!convMap.has(msg.conversation_id)) {
+          const unreadCount = (data || []).filter(
+            (m) =>
+              m.conversation_id === msg.conversation_id &&
+              m.receiver_id === user.id &&
+              !m.is_read
+          ).length;
+          convMap.set(msg.conversation_id, {
+            ...msg,
+            unread_count: unreadCount,
+          });
+        }
+      }
+
+      return Array.from(convMap.values());
+    },
+    enabled: !!user,
+  });
+
+  // Realtime for any new message to the user
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("all-seller-messages")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "seller_messages",
+        },
+        (payload) => {
+          const msg = payload.new as any;
+          if (msg.sender_id === user.id || msg.receiver_id === user.id) {
+            queryClient.invalidateQueries({ queryKey: ["all-conversations", user.id] });
+            queryClient.invalidateQueries({ queryKey: ["seller-messages", msg.conversation_id] });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
+
+  return { conversations, isLoading };
 };

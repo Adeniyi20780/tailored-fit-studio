@@ -34,6 +34,7 @@ import NotificationsCenter from "./pages/NotificationsCenter";
 import LoyaltyProgram from "./pages/LoyaltyProgram";
 import BodyScanner from "./pages/BodyScanner";
 import MeasurementGuide from "./pages/MeasurementGuide";
+import Messages from "./pages/Messages";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -181,6 +182,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <BodyScanner />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/messages"
+                element={
+                  <ProtectedRoute>
+                    <Messages />
                   </ProtectedRoute>
                 }
               />
