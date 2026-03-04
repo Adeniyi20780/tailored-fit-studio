@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useAllConversations } from "@/hooks/useSellerMessages";
 import CartDrawer from "@/components/cart/CartDrawer";
 import {
   DropdownMenu,
@@ -22,6 +23,8 @@ const Header = () => {
   const { isAdmin } = useUserRole();
   const { wishlistItems } = useWishlist();
   const { unreadCount: notificationCount } = useNotifications();
+  const { conversations } = useAllConversations();
+  const unreadMessageCount = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
   const navigate = useNavigate();
   const wishlistCount = wishlistItems.length;
 
@@ -77,6 +80,18 @@ const Header = () => {
                 )}
               </Button>
             </Link>
+            {user && (
+              <Link to="/messages" className="relative">
+                <Button variant="ghost" size="icon">
+                  <MessageCircle className="w-5 h-5" />
+                  {unreadMessageCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center">
+                      {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+            )}
             {user && (
               <Link to="/notifications" className="relative">
                 <Button variant="ghost" size="icon">
@@ -219,6 +234,11 @@ const Header = () => {
                         <Button variant="outline" className="w-full justify-start">
                           <MessageCircle className="w-4 h-4 mr-2" />
                           Messages
+                          {unreadMessageCount > 0 && (
+                            <span className="ml-auto bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded-full">
+                              {unreadMessageCount}
+                            </span>
+                          )}
                         </Button>
                       </Link>
                       <Link to="/notifications" onClick={() => setIsOpen(false)}>
