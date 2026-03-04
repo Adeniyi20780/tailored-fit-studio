@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Store, Sparkles, ShoppingBag, Loader2, AlertCircle, Heart, Ruler } from "lucide-react";
+import {
+  ArrowLeft, Store, Sparkles, ShoppingBag, Loader2, AlertCircle,
+  Heart, Ruler, MessageCircle, Star, UserPlus, UserCheck,
+  Truck, RotateCcw, ShieldCheck, MapPin, Calendar,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -17,6 +21,7 @@ import ProductImageGallery from "@/components/product/ProductImageGallery";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
 import { ProductReviewsSection } from "@/components/reviews/ProductReviewsSection";
 import VirtualTryOn from "@/components/tryon/VirtualTryOn";
+import SellerMessageDrawer from "@/components/product/SellerMessageDrawer";
 import { useProduct } from "@/hooks/useProducts";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,6 +51,8 @@ const ProductDetail = () => {
   const { isInWishlist, toggleWishlist, isToggling } = useWishlist();
 
   const [showVirtualTryOn, setShowVirtualTryOn] = useState(false);
+  const [showMessageDrawer, setShowMessageDrawer] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   const { data: product, isLoading, error } = useProduct(productId || "");
 
@@ -56,7 +63,7 @@ const ProductDetail = () => {
       if (!product?.tailor_id) return null;
       const { data, error } = await supabase
         .from("tailors")
-        .select("id, store_name, store_slug, logo_url, rating, total_reviews")
+        .select("id, store_name, store_slug, logo_url, rating, total_reviews, location, description")
         .eq("id", product.tailor_id)
         .maybeSingle();
       if (error) throw error;
@@ -80,12 +87,31 @@ const ProductDetail = () => {
         description: "Please sign in to add items to your wishlist",
         variant: "destructive",
       });
-      navigate('/auth');
+      navigate("/auth");
       return;
     }
     if (product) {
       toggleWishlist(product.id);
     }
+  };
+
+  const handleFollowShop = () => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to follow shops",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+    setIsFollowing(!isFollowing);
+    toast({
+      title: isFollowing ? "Unfollowed" : "Following!",
+      description: isFollowing
+        ? `You unfollowed ${tailor?.store_name}`
+        : `You are now following ${tailor?.store_name}. You'll get updates on new products.`,
+    });
   };
 
   const isWishlisted = product ? isInWishlist(product.id) : false;
@@ -94,7 +120,7 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex-1 flex items-center justify-center pt-20">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-muted-foreground">Loading product details...</p>
@@ -109,7 +135,7 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex-1 flex items-center justify-center pt-20">
           <Card className="max-w-md mx-4">
             <CardContent className="pt-6 text-center">
               <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
@@ -132,7 +158,7 @@ const ProductDetail = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
-      <main className="flex-1">
+      <main className="flex-1 pt-20">
         {/* Breadcrumb */}
         <div className="container py-4">
           <div className="flex items-center gap-2 text-sm">
@@ -190,44 +216,14 @@ const ProductDetail = () => {
                   onClick={handleWishlistClick}
                   disabled={isToggling}
                   className={`shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 border ${
-                    isWishlisted 
-                      ? 'bg-red-500 border-red-500 text-white' 
-                      : 'bg-background border-border text-muted-foreground hover:text-red-500 hover:border-red-500'
+                    isWishlisted
+                      ? "bg-red-500 border-red-500 text-white"
+                      : "bg-background border-border text-muted-foreground hover:text-red-500 hover:border-red-500"
                   }`}
                 >
-                  <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
+                  <Heart className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`} />
                 </button>
               </div>
-
-              {/* Tailor Info */}
-              {tailor && (
-                <Link to={`/tailor/${tailor.store_slug}`}>
-                  <Card className="bg-muted/30 hover:border-primary/50 transition-colors cursor-pointer">
-                    <CardContent className="p-4 flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                        {tailor.logo_url ? (
-                          <img
-                            src={tailor.logo_url}
-                            alt={tailor.store_name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Store className="h-6 w-6 text-primary" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{tailor.store_name}</p>
-                        {tailor.rating && tailor.rating > 0 && (
-                          <p className="text-sm text-muted-foreground">
-                            ⭐ {tailor.rating.toFixed(1)} ({tailor.total_reviews} reviews)
-                          </p>
-                        )}
-                      </div>
-                      <span className="text-sm text-primary">View Store →</span>
-                    </CardContent>
-                  </Card>
-                </Link>
-              )}
 
               {/* Price */}
               <div className="flex items-baseline gap-2">
@@ -240,7 +236,7 @@ const ProductDetail = () => {
 
               {/* Description */}
               {product.description && (
-                <div>
+                <div id="details">
                   <h3 className="text-lg font-semibold mb-2">Description</h3>
                   <p className="text-muted-foreground leading-relaxed">
                     {product.description}
@@ -256,7 +252,7 @@ const ProductDetail = () => {
               <Separator />
 
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <Button
                   size="lg"
                   className="flex-1 gap-2"
@@ -282,19 +278,134 @@ const ProductDetail = () => {
                 </Dialog>
               </div>
 
-              {/* Additional Info */}
-              <div className="grid grid-cols-2 gap-4 pt-4">
-                <div className="text-center p-4 rounded-lg bg-muted/50">
-                  <p className="text-2xl font-bold text-primary">✂️</p>
-                  <p className="text-sm font-medium mt-1">Custom Tailored</p>
-                  <p className="text-xs text-muted-foreground">Made to your measurements</p>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-muted/50">
-                  <p className="text-2xl font-bold text-primary">🚚</p>
-                  <p className="text-sm font-medium mt-1">Free Shipping</p>
-                  <p className="text-xs text-muted-foreground">On orders over $100</p>
+              <Separator />
+
+              {/* Delivery & Return Policies */}
+              <div className="space-y-4" id="faq">
+                <h3 className="text-lg font-semibold">Delivery & Return Policies</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Calendar className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">Estimated Delivery</p>
+                      <p className="text-xs text-muted-foreground">
+                        2–4 weeks after order confirmation (custom tailored)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <RotateCcw className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">Returns & Alterations</p>
+                      <p className="text-xs text-muted-foreground">
+                        Free alterations within 14 days of delivery. See our{" "}
+                        <Link to="/perfect-fit-guarantee" className="underline text-primary">
+                          Perfect Fit Guarantee
+                        </Link>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Truck className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">Free Shipping</p>
+                      <p className="text-xs text-muted-foreground">On orders over $100</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">Purchase Protection</p>
+                      <p className="text-xs text-muted-foreground">
+                        Shop confidently — if something goes wrong with your order, we've got your back.
+                      </p>
+                    </div>
+                  </div>
+                  {tailor?.location && (
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Dispatched from</p>
+                        <p className="text-xs text-muted-foreground">{tailor.location}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Tailor / Shop Info Card */}
+              {tailor && (
+                <Card className="bg-muted/30 border-border">
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-center gap-4">
+                      <Link to={`/tailor/${tailor.store_slug}`}>
+                        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                          {tailor.logo_url ? (
+                            <img
+                              src={tailor.logo_url}
+                              alt={tailor.store_name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Store className="h-7 w-7 text-primary" />
+                          )}
+                        </div>
+                      </Link>
+                      <div className="flex-1 min-w-0">
+                        <Link to={`/tailor/${tailor.store_slug}`} className="hover:underline">
+                          <p className="font-semibold text-lg">{tailor.store_name}</p>
+                        </Link>
+                        {tailor.location && (
+                          <p className="text-sm text-muted-foreground">{tailor.location}</p>
+                        )}
+                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                          {tailor.rating != null && tailor.rating > 0 && (
+                            <span className="flex items-center gap-1">
+                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                              {tailor.rating.toFixed(1)} ({tailor.total_reviews})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        className="flex-1 gap-2"
+                        onClick={() => setShowMessageDrawer(true)}
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Message Seller
+                      </Button>
+                      <Button
+                        variant={isFollowing ? "secondary" : "outline"}
+                        className="flex-1 gap-2"
+                        onClick={handleFollowShop}
+                      >
+                        {isFollowing ? (
+                          <>
+                            <UserCheck className="h-4 w-4" />
+                            Following
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="h-4 w-4" />
+                            Follow Shop
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground text-center">
+                      This seller usually responds within a few hours.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </motion.div>
           </div>
 
@@ -307,6 +418,18 @@ const ProductDetail = () => {
       </main>
 
       <Footer />
+
+      {/* Seller Message Drawer */}
+      {tailor && (
+        <SellerMessageDrawer
+          open={showMessageDrawer}
+          onClose={() => setShowMessageDrawer(false)}
+          sellerName={tailor.store_name}
+          sellerLogo={tailor.logo_url}
+          sellerSlug={tailor.store_slug}
+          productName={product.name}
+        />
+      )}
     </div>
   );
 };
