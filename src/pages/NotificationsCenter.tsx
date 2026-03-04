@@ -8,6 +8,7 @@ import {
   Package, 
   Scissors, 
   AlertCircle,
+  MessageCircle,
   Settings,
   Loader2,
   Inbox
@@ -33,6 +34,8 @@ const getNotificationIcon = (type: string) => {
       return <Scissors className="h-5 w-5 text-orange-500" />;
     case "price_alert":
       return <AlertCircle className="h-5 w-5 text-green-500" />;
+    case "message":
+      return <MessageCircle className="h-5 w-5 text-blue-500" />;
     default:
       return <Bell className="h-5 w-5 text-muted-foreground" />;
   }
@@ -47,6 +50,9 @@ const getNotificationLink = (notification: Notification) => {
   }
   if (notification.reference_type === "product" && notification.reference_id) {
     return `/product/${notification.reference_id}`;
+  }
+  if (notification.reference_type === "seller_message" && notification.reference_id) {
+    return `/messages?conversation=${notification.reference_id}`;
   }
   return null;
 };

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, ArrowLeft, Send, Loader2 } from "lucide-react";
+import { MessageCircle, ArrowLeft, Send, Loader2, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -72,10 +72,30 @@ const TailorMessagesInbox = ({ tailorId }: TailorMessagesInboxProps) => {
         profiles = profileData || [];
       }
 
+      // Fetch product names
+      const productIds = Array.from(
+        new Set(Array.from(convMap.values()).map((c) => c.product_id).filter(Boolean))
+      );
+      let productsMap: Record<string, string> = {};
+      if (productIds.length > 0) {
+        const { data: products } = await supabase
+          .from("products")
+          .select("id, name")
+          .in("id", productIds);
+        for (const p of products || []) {
+          productsMap[p.id] = p.name;
+        }
+      }
+
       return Array.from(convMap.values()).map((conv) => {
         const customerId = conv.sender_id === user.id ? conv.receiver_id : conv.sender_id;
         const profile = profiles.find((p) => p.user_id === customerId);
-        return { ...conv, customer_name: profile?.full_name || "Customer", customer_avatar: profile?.avatar_url };
+        return {
+          ...conv,
+          customer_name: profile?.full_name || "Customer",
+          customer_avatar: profile?.avatar_url,
+          product_name: conv.product_id ? productsMap[conv.product_id] || null : null,
+        };
       });
     },
     enabled: !!user && !!tailorId,
@@ -130,13 +150,19 @@ const TailorMessagesInbox = ({ tailorId }: TailorMessagesInboxProps) => {
                   onClick={() => setSelectedConv(conv)}
                 >
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                    {conv.customer_name?.charAt(0)?.toUpperCase() || "C"}
+                    {conv.customer_name?.split(" ")[0]?.charAt(0)?.toUpperCase() || "C"}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <p className="font-medium text-foreground text-sm truncate">{conv.customer_name}</p>
+                      <p className="font-medium text-foreground text-sm truncate">{conv.customer_name?.split(" ")[0]}</p>
                       <span className="text-[10px] text-muted-foreground shrink-0 ml-1">{formatDate(conv.created_at)}</span>
                     </div>
+                    {conv.product_name && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <ShoppingBag className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <p className="text-[11px] text-muted-foreground truncate">{conv.product_name}</p>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between mt-0.5">
                       <p className="text-xs text-muted-foreground truncate">{conv.content}</p>
                       {conv.unread_count > 0 && (
