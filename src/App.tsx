@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import VerifiedTailorRoute from "@/components/auth/VerifiedTailorRoute";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
+import { useMessageNotification } from "@/hooks/useMessageNotification";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -42,6 +43,7 @@ const queryClient = new QueryClient();
 // Component that activates the inactivity logout hook
 const InactivityHandler = ({ children }: { children: React.ReactNode }) => {
   useInactivityLogout();
+  useMessageNotification();
   return <>{children}</>;
 };
 
