@@ -24,6 +24,7 @@ import VirtualTryOn from "@/components/tryon/VirtualTryOn";
 import SellerMessageDrawer from "@/components/product/SellerMessageDrawer";
 import { useProduct } from "@/hooks/useProducts";
 import { useWishlist } from "@/hooks/useWishlist";
+import { useShopFollow } from "@/hooks/useShopFollow";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -52,7 +53,6 @@ const ProductDetail = () => {
 
   const [showVirtualTryOn, setShowVirtualTryOn] = useState(false);
   const [showMessageDrawer, setShowMessageDrawer] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
 
   const { data: product, isLoading, error } = useProduct(productId || "");
 
@@ -63,7 +63,7 @@ const ProductDetail = () => {
       if (!product?.tailor_id) return null;
       const { data, error } = await supabase
         .from("tailors")
-        .select("id, store_name, store_slug, logo_url, rating, total_reviews, location, description")
+        .select("id, store_name, store_slug, logo_url, rating, total_reviews, location, description, user_id")
         .eq("id", product.tailor_id)
         .maybeSingle();
       if (error) throw error;
@@ -71,6 +71,8 @@ const ProductDetail = () => {
     },
     enabled: !!product?.tailor_id,
   });
+
+  const { isFollowing, toggleFollow, isToggling: isFollowToggling } = useShopFollow(tailor?.id);
 
   const handleCustomize = () => {
     if (!product) return;
@@ -105,13 +107,7 @@ const ProductDetail = () => {
       navigate("/auth");
       return;
     }
-    setIsFollowing(!isFollowing);
-    toast({
-      title: isFollowing ? "Unfollowed" : "Following!",
-      description: isFollowing
-        ? `You unfollowed ${tailor?.store_name}`
-        : `You are now following ${tailor?.store_name}. You'll get updates on new products.`,
-    });
+    toggleFollow();
   };
 
   const isWishlisted = product ? isInWishlist(product.id) : false;
@@ -385,6 +381,7 @@ const ProductDetail = () => {
                         variant={isFollowing ? "secondary" : "outline"}
                         className="flex-1 gap-2"
                         onClick={handleFollowShop}
+                        disabled={isFollowToggling}
                       >
                         {isFollowing ? (
                           <>
@@ -428,6 +425,9 @@ const ProductDetail = () => {
           sellerLogo={tailor.logo_url}
           sellerSlug={tailor.store_slug}
           productName={product.name}
+          tailorId={tailor.id}
+          tailorUserId={tailor.user_id}
+          productId={product.id}
         />
       )}
     </div>

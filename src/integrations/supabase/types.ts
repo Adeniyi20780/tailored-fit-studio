@@ -871,6 +871,57 @@ export type Database = {
           },
         ]
       }
+      seller_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          product_id: string | null
+          receiver_id: string
+          sender_id: string
+          tailor_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          product_id?: string | null
+          receiver_id: string
+          sender_id: string
+          tailor_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          product_id?: string | null
+          receiver_id?: string
+          sender_id?: string
+          tailor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_messages_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_messages_tailor_id_fkey"
+            columns: ["tailor_id"]
+            isOneToOne: false
+            referencedRelation: "tailors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_wishlists: {
         Row: {
           created_at: string
@@ -906,6 +957,35 @@ export type Database = {
           view_count?: number | null
         }
         Relationships: []
+      }
+      shop_follows: {
+        Row: {
+          created_at: string
+          id: string
+          tailor_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          tailor_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          tailor_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_follows_tailor_id_fkey"
+            columns: ["tailor_id"]
+            isOneToOne: false
+            referencedRelation: "tailors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tailor_reviews: {
         Row: {
