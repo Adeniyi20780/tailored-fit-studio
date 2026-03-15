@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 const CTASection = () => {
   const ref = useRef(null);
+  const navigate = useNavigate();
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
