@@ -488,7 +488,7 @@ const AIBodyScanner = () => {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-4"
             >
-              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+              <div className="relative aspect-[3/4] sm:aspect-video bg-black rounded-lg overflow-hidden">
                 {isDemoMode ? (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
                     <div className="text-center">
