@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, Store, Sparkles, ShoppingBag, Loader2, AlertCircle,
   Heart, Ruler, MessageCircle, Star, UserPlus, UserCheck,
-  Truck, RotateCcw, ShieldCheck, MapPin, Calendar,
+  Truck, RotateCcw, ShieldCheck, MapPin, Calendar, Minus, Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
