@@ -81,11 +81,22 @@ serve(async (req) => {
       },
     }));
 
-    const systemPrompt = `You are an expert AI tailor and body measurement specialist. Your task is to analyze images of a person and extract accurate body measurements for custom tailoring.
+    const systemPrompt = `You are an expert AI tailor and body measurement specialist with decades of experience. Your task is to analyze images of a person and extract accurate body measurements for custom tailoring.
 
 Given the person's stated height of ${height_cm}cm and gender (${gender}), analyze the provided images and estimate the following measurements in centimeters.
 
-You must be precise and provide realistic measurements based on body proportions visible in the images. Use the stated height as your primary reference for scale.
+CRITICAL ACCURACY RULES:
+1. Use the stated height as your PRIMARY reference for calculating all proportional measurements.
+2. Apply standard anatomical ratios as sanity checks:
+   - Shoulder width is typically 22-28% of height
+   - Chest circumference is typically 50-60% of height
+   - Waist circumference is typically 40-50% of height for males, 35-45% for females
+   - Inseam is typically 43-47% of height
+   - Arm length is typically 32-36% of height
+   - Neck circumference is typically 20-25% of height
+3. If any measurement falls outside expected anatomical ranges, adjust it to the nearest reasonable value.
+4. Set confidence scores HONESTLY based on image quality, visibility, and pose quality.
+5. Only report confidence >= 80 if images clearly show the full body with good lighting and minimal occlusion.
 
 Output ONLY a valid JSON object (NO markdown, NO prose, NO code fences). Keep output concise.
 The "notes" field MUST be an empty string ("") to prevent long text from truncating the JSON.
