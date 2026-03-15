@@ -10,6 +10,7 @@ import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { useMessageNotification } from "@/hooks/useMessageNotification";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import Store from "./pages/Store";
 import StoreOrders from "./pages/StoreOrders";
