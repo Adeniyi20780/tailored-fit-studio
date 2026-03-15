@@ -7,6 +7,7 @@ import {
   Truck, RotateCcw, ShieldCheck, MapPin, Calendar, Minus, Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
@@ -333,12 +334,18 @@ const ProductDetail = () => {
                       </button>
                       <span className="w-10 text-center text-sm font-semibold">{quantity}</span>
                       <button
-                        className="p-2 hover:bg-muted transition-colors"
+                        className="p-2 hover:bg-muted transition-colors disabled:opacity-40"
                         onClick={() => setQuantity((q) => q + 1)}
+                        disabled={product?.stock != null && quantity >= product.stock}
                       >
                         <Plus className="h-4 w-4" />
                       </button>
                     </div>
+                    {product?.stock != null && (
+                      <span className={cn("text-xs", product.stock <= 5 ? "text-destructive font-medium" : "text-muted-foreground")}>
+                        {product.stock === 0 ? "Out of stock" : `${product.stock} left`}
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -348,7 +355,7 @@ const ProductDetail = () => {
                     size="lg"
                     className="w-full gap-2"
                     onClick={handleAddToCart}
-                    disabled={isAdding || !isVariantSelectionComplete()}
+                    disabled={isAdding || !isVariantSelectionComplete() || product?.stock === 0}
                   >
                     <ShoppingBag className="h-5 w-5" />
                     {isAdding ? "Adding..." : `Add to Cart${quantity > 1 ? ` (${quantity})` : ""}`}

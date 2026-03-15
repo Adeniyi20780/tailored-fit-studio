@@ -677,6 +677,7 @@ export type Database = {
           is_active: boolean | null
           name: string
           sizes: string[] | null
+          stock: number | null
           tailor_id: string | null
           updated_at: string
         }
@@ -693,6 +694,7 @@ export type Database = {
           is_active?: boolean | null
           name: string
           sizes?: string[] | null
+          stock?: number | null
           tailor_id?: string | null
           updated_at?: string
         }
@@ -709,6 +711,7 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           sizes?: string[] | null
+          stock?: number | null
           tailor_id?: string | null
           updated_at?: string
         }

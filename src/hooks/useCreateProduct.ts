@@ -16,6 +16,7 @@ export interface ProductFormData {
   fabric_types: string[];
   fabric_textures: string[];
   is_active: boolean;
+  stock: number | null;
 }
 
 export const useCreateProduct = () => {
@@ -105,6 +106,7 @@ export const useCreateProduct = () => {
         fabrics,
         images: uploadedImages,
         is_active: data.is_active,
+        stock: data.stock,
         tailor_id: tailor.id,
       });
 
