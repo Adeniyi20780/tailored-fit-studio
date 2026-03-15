@@ -56,6 +56,7 @@ const ProductDetail = () => {
 
   const [showVirtualTryOn, setShowVirtualTryOn] = useState(false);
   const [showMessageDrawer, setShowMessageDrawer] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const [variantSelection, setVariantSelection] = useState<VariantSelection>({
     size: null,
     color: null,
