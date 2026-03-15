@@ -335,7 +335,7 @@ const AIBodyScanner = () => {
   };
 
   return (
-    <Card className="max-w-2xl mx-auto">
+    <Card className="max-w-2xl mx-auto w-full">
       <CardHeader className="text-center">
         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
           <Ruler className="w-8 h-8 text-primary" />
