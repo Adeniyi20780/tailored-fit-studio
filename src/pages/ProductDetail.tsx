@@ -120,7 +120,7 @@ const ProductDetail = () => {
 
     addToCart({
       productId: product.id,
-      quantity: 1,
+      quantity,
       customizations: {
         type: "straight",
         ...(variantSelection.size && { size: variantSelection.size }),
