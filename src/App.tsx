@@ -63,6 +63,7 @@ const App = () => (
               <Route path="/tailors" element={<TailorsMarketplace />} />
               <Route path="/tailor/:storeSlug" element={<TailorStorePage />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route
                 path="/dashboard"
                 element={
