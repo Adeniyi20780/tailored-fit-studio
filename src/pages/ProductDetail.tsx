@@ -355,7 +355,7 @@ const ProductDetail = () => {
                     size="lg"
                     className="w-full gap-2"
                     onClick={handleAddToCart}
-                    disabled={isAdding || !isVariantSelectionComplete()}
+                    disabled={isAdding || !isVariantSelectionComplete() || product?.stock === 0}
                   >
                     <ShoppingBag className="h-5 w-5" />
                     {isAdding ? "Adding..." : `Add to Cart${quantity > 1 ? ` (${quantity})` : ""}`}
