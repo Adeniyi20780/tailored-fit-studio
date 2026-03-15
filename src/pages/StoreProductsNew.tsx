@@ -48,6 +48,7 @@ const StoreProductsNew = () => {
       fabric_types: [],
       fabric_textures: [],
       is_active: true,
+      stock: null,
     },
   });
 
