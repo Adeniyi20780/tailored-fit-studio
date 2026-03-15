@@ -401,22 +401,39 @@ export default function Checkout() {
 
     return (
       <div className="space-y-3">
-        {cartItemsWithProducts.map(item => (
-          <div key={item.id} className="flex gap-4 p-3 rounded-lg bg-muted/30">
-            <img
-              src={item.product.images?.[0] || '/placeholder.svg'}
-              alt={item.product.name}
-              className="w-16 h-16 object-cover rounded-md"
-            />
-            <div className="flex-1">
-              <h4 className="font-medium">{item.product.name}</h4>
-              <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
-              <p className="font-semibold mt-1">
-                {item.product.currency || '$'}{(item.product.base_price * item.quantity).toFixed(2)}
-              </p>
+        {cartItemsWithProducts.map(item => {
+          const customizations = item.customizations as Record<string, any> | null;
+          const isStraight = customizations?.type === 'straight';
+          return (
+            <div key={item.id} className="flex gap-4 p-3 rounded-lg bg-muted/30">
+              <img
+                src={item.product.images?.[0] || '/placeholder.svg'}
+                alt={item.product.name}
+                className="w-16 h-16 object-cover rounded-md"
+              />
+              <div className="flex-1">
+                <h4 className="font-medium">{item.product.name}</h4>
+                {isStraight && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {customizations?.size && (
+                      <span className="text-xs bg-muted px-2 py-0.5 rounded">Size: {customizations.size}</span>
+                    )}
+                    {customizations?.color && (
+                      <span className="text-xs bg-muted px-2 py-0.5 rounded">Color: {customizations.color}</span>
+                    )}
+                    {customizations?.fabric && (
+                      <span className="text-xs bg-muted px-2 py-0.5 rounded">Fabric: {customizations.fabric}</span>
+                    )}
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+                <p className="font-semibold mt-1">
+                  {item.product.currency || '$'}{(item.product.base_price * item.quantity).toFixed(2)}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };

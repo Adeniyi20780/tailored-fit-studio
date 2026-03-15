@@ -642,7 +642,7 @@ const AIBodyScanner = () => {
               )}
 
               {/* Fit Recommendations */}
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="text-center p-3 bg-muted/50 rounded-lg">
                   <p className="text-xs text-muted-foreground">Shirt</p>
                   <p className="font-bold">{result.fit_recommendations.shirt_size}</p>
