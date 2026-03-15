@@ -58,6 +58,7 @@ const CTASection = () => {
               variant="heroOutline"
               size="lg"
               className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 group/btn"
+              onClick={() => navigate("/become-a-tailor")}
             >
               Create Your Store
               <ArrowRight className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
