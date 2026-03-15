@@ -894,6 +894,10 @@ export type Database = {
       }
       seller_messages: {
         Row: {
+          attachment_mime_type: string | null
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_size: number | null
           content: string
           conversation_id: string
           created_at: string
@@ -905,6 +909,10 @@ export type Database = {
           tailor_id: string
         }
         Insert: {
+          attachment_mime_type?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           content: string
           conversation_id: string
           created_at?: string
@@ -916,6 +924,10 @@ export type Database = {
           tailor_id: string
         }
         Update: {
+          attachment_mime_type?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           content?: string
           conversation_id?: string
           created_at?: string
