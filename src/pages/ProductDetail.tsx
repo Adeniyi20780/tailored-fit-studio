@@ -340,6 +340,11 @@ const ProductDetail = () => {
                         <Plus className="h-4 w-4" />
                       </button>
                     </div>
+                    {product?.stock != null && (
+                      <span className={cn("text-xs", product.stock <= 5 ? "text-destructive font-medium" : "text-muted-foreground")}>
+                        {product.stock === 0 ? "Out of stock" : `${product.stock} left`}
+                      </span>
+                    )}
                   </div>
                 )}
 
