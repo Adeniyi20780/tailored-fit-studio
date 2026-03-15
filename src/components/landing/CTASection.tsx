@@ -31,7 +31,7 @@ const CTASection = () => {
               Browse thousands of tailors, get AI-measured for the perfect fit,
               and receive custom clothing delivered to your door.
             </p>
-            <Button variant="hero" size="lg" className="group/btn">
+            <Button variant="hero" size="lg" className="group/btn" onClick={() => navigate("/catalog")}>
               Start Shopping
               <ArrowRight className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
             </Button>
