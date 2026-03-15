@@ -19,12 +19,14 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import ProductImageGallery from "@/components/product/ProductImageGallery";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
+import ProductVariantSelector, { VariantSelection } from "@/components/product/ProductVariantSelector";
 import { ProductReviewsSection } from "@/components/reviews/ProductReviewsSection";
 import VirtualTryOn from "@/components/tryon/VirtualTryOn";
 import SellerMessageDrawer from "@/components/product/SellerMessageDrawer";
 import { useProduct } from "@/hooks/useProducts";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useShopFollow } from "@/hooks/useShopFollow";
+import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -50,9 +52,15 @@ const ProductDetail = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isInWishlist, toggleWishlist, isToggling } = useWishlist();
+  const { addToCart, isAdding } = useCart();
 
   const [showVirtualTryOn, setShowVirtualTryOn] = useState(false);
   const [showMessageDrawer, setShowMessageDrawer] = useState(false);
+  const [variantSelection, setVariantSelection] = useState<VariantSelection>({
+    size: null,
+    color: null,
+    fabric: null,
+  });
 
   const { data: product, isLoading, error } = useProduct(productId || "");
 
@@ -73,6 +81,53 @@ const ProductDetail = () => {
   });
 
   const { isFollowing, toggleFollow, isToggling: isFollowToggling } = useShopFollow(tailor?.id);
+
+  const hasVariants = product && (
+    (product.sizes && product.sizes.length > 0) ||
+    (product.colors && product.colors.length > 0) ||
+    (product.fabrics && product.fabrics.length > 0)
+  );
+
+  // Check if all available variant groups have a selection
+  const isVariantSelectionComplete = () => {
+    if (!product) return false;
+    if (product.sizes && product.sizes.length > 0 && !variantSelection.size) return false;
+    if (product.colors && product.colors.length > 0 && !variantSelection.color) return false;
+    if (product.fabrics && product.fabrics.length > 0 && !variantSelection.fabric) return false;
+    return true;
+  };
+
+  const handleAddToCart = () => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to add items to your cart",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+    if (!product) return;
+    if (hasVariants && !isVariantSelectionComplete()) {
+      toast({
+        title: "Select options",
+        description: "Please select all available options before ordering",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addToCart({
+      productId: product.id,
+      quantity: 1,
+      customizations: {
+        type: "straight",
+        ...(variantSelection.size && { size: variantSelection.size }),
+        ...(variantSelection.color && { color: variantSelection.color }),
+        ...(variantSelection.fabric && { fabric: variantSelection.fabric }),
+      },
+    });
+  };
 
   const handleCustomize = () => {
     if (!product) return;
@@ -223,7 +278,9 @@ const ProductDetail = () => {
 
               {/* Price */}
               <div className="flex items-baseline gap-2">
-                <span className="text-sm text-muted-foreground">Starting from</span>
+                <span className="text-sm text-muted-foreground">
+                  {hasVariants ? "Price" : "Starting from"}
+                </span>
                 <span className="font-display text-4xl font-bold text-foreground">
                   {product.currency || "$"}
                   {product.base_price.toFixed(2)}
@@ -242,27 +299,56 @@ const ProductDetail = () => {
 
               <Separator />
 
-              {/* Specifications */}
-              <ProductSpecifications product={product} />
-
-              <Separator />
+              {/* Variant Selector for Straight Order */}
+              {hasVariants && (
+                <>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Select Options</h3>
+                    <ProductVariantSelector
+                      sizes={product.sizes}
+                      colors={product.colors}
+                      fabrics={product.fabrics}
+                      selection={variantSelection}
+                      onChange={setVariantSelection}
+                    />
+                  </div>
+                  <Separator />
+                </>
+              )}
 
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-2">
+              <div className="space-y-3 pt-2">
+                {/* Straight Order - Add to Cart */}
+                {hasVariants && (
+                  <Button
+                    size="lg"
+                    className="w-full gap-2"
+                    onClick={handleAddToCart}
+                    disabled={isAdding || !isVariantSelectionComplete()}
+                  >
+                    <ShoppingBag className="h-5 w-5" />
+                    {isAdding ? "Adding..." : "Add to Cart"}
+                  </Button>
+                )}
+
+                {/* Custom Order */}
                 <Button
                   size="lg"
-                  className="flex-1 gap-2"
+                  variant={hasVariants ? "outline" : "default"}
+                  className="w-full gap-2"
                   onClick={handleCustomize}
                 >
                   <Sparkles className="h-5 w-5" />
                   Customize & Order
                 </Button>
+
+                {/* Virtual Try-On */}
                 <Dialog open={showVirtualTryOn} onOpenChange={setShowVirtualTryOn}>
                   <DialogTrigger asChild>
                     <Button
                       variant="outline"
                       size="lg"
-                      className="flex-1 gap-2"
+                      className="w-full gap-2"
                     >
                       <Ruler className="h-5 w-5" />
                       Virtual Try-On
@@ -273,6 +359,14 @@ const ProductDetail = () => {
                   </DialogContent>
                 </Dialog>
               </div>
+
+              {/* Read-only specifications (collapsed when variants exist) */}
+              {!hasVariants && (
+                <>
+                  <Separator />
+                  <ProductSpecifications product={product} />
+                </>
+              )}
 
               <Separator />
 

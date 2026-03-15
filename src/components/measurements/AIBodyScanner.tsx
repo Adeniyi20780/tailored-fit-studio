@@ -335,7 +335,7 @@ const AIBodyScanner = () => {
   };
 
   return (
-    <Card className="max-w-2xl mx-auto">
+    <Card className="max-w-2xl mx-auto w-full">
       <CardHeader className="text-center">
         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
           <Ruler className="w-8 h-8 text-primary" />
@@ -363,7 +363,7 @@ const AIBodyScanner = () => {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-6"
             >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="text-center p-4">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
                     <User className="w-6 h-6 text-primary" />
@@ -488,7 +488,7 @@ const AIBodyScanner = () => {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-4"
             >
-              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+              <div className="relative aspect-[3/4] sm:aspect-video bg-black rounded-lg overflow-hidden">
                 {isDemoMode ? (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
                     <div className="text-center">
@@ -642,7 +642,7 @@ const AIBodyScanner = () => {
               )}
 
               {/* Fit Recommendations */}
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="text-center p-3 bg-muted/50 rounded-lg">
                   <p className="text-xs text-muted-foreground">Shirt</p>
                   <p className="font-bold">{result.fit_recommendations.shirt_size}</p>
