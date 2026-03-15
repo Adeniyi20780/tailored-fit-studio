@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, Store, Sparkles, ShoppingBag, Loader2, AlertCircle,
   Heart, Ruler, MessageCircle, Star, UserPlus, UserCheck,
-  Truck, RotateCcw, ShieldCheck, MapPin, Calendar,
+  Truck, RotateCcw, ShieldCheck, MapPin, Calendar, Minus, Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +56,7 @@ const ProductDetail = () => {
 
   const [showVirtualTryOn, setShowVirtualTryOn] = useState(false);
   const [showMessageDrawer, setShowMessageDrawer] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const [variantSelection, setVariantSelection] = useState<VariantSelection>({
     size: null,
     color: null,
@@ -119,7 +120,7 @@ const ProductDetail = () => {
 
     addToCart({
       productId: product.id,
-      quantity: 1,
+      quantity,
       customizations: {
         type: "straight",
         ...(variantSelection.size && { size: variantSelection.size }),
@@ -316,8 +317,31 @@ const ProductDetail = () => {
                 </>
               )}
 
-              {/* CTA Buttons */}
+              {/* Quantity + CTA Buttons */}
               <div className="space-y-3 pt-2">
+                {/* Quantity Selector */}
+                {hasVariants && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-foreground">Qty</span>
+                    <div className="flex items-center border border-border rounded-lg">
+                      <button
+                        className="p-2 hover:bg-muted transition-colors disabled:opacity-40"
+                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                        disabled={quantity <= 1}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="w-10 text-center text-sm font-semibold">{quantity}</span>
+                      <button
+                        className="p-2 hover:bg-muted transition-colors"
+                        onClick={() => setQuantity((q) => q + 1)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Straight Order - Add to Cart */}
                 {hasVariants && (
                   <Button
@@ -327,7 +351,7 @@ const ProductDetail = () => {
                     disabled={isAdding || !isVariantSelectionComplete()}
                   >
                     <ShoppingBag className="h-5 w-5" />
-                    {isAdding ? "Adding..." : "Add to Cart"}
+                    {isAdding ? "Adding..." : `Add to Cart${quantity > 1 ? ` (${quantity})` : ""}`}
                   </Button>
                 )}
 
