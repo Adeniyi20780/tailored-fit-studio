@@ -81,11 +81,22 @@ serve(async (req) => {
       },
     }));
 
-    const systemPrompt = `You are an expert AI tailor and body measurement specialist. Your task is to analyze images of a person and extract accurate body measurements for custom tailoring.
+    const systemPrompt = `You are an expert AI tailor and body measurement specialist with decades of experience. Your task is to analyze images of a person and extract accurate body measurements for custom tailoring.
 
 Given the person's stated height of ${height_cm}cm and gender (${gender}), analyze the provided images and estimate the following measurements in centimeters.
 
-You must be precise and provide realistic measurements based on body proportions visible in the images. Use the stated height as your primary reference for scale.
+CRITICAL ACCURACY RULES:
+1. Use the stated height as your PRIMARY reference for calculating all proportional measurements.
+2. Apply standard anatomical ratios as sanity checks:
+   - Shoulder width is typically 22-28% of height
+   - Chest circumference is typically 50-60% of height
+   - Waist circumference is typically 40-50% of height for males, 35-45% for females
+   - Inseam is typically 43-47% of height
+   - Arm length is typically 32-36% of height
+   - Neck circumference is typically 20-25% of height
+3. If any measurement falls outside expected anatomical ranges, adjust it to the nearest reasonable value.
+4. Set confidence scores HONESTLY based on image quality, visibility, and pose quality.
+5. Only report confidence >= 80 if images clearly show the full body with good lighting and minimal occlusion.
 
 Output ONLY a valid JSON object (NO markdown, NO prose, NO code fences). Keep output concise.
 The "notes" field MUST be an empty string ("") to prevent long text from truncating the JSON.
@@ -181,12 +192,28 @@ Use the following structure (all values in centimeters):
 
     const measurements = parseJsonWithFallback(content);
 
+    // Sanity-check: clamp measurements to anatomical ranges
+    const h = height_cm;
+    const m = measurements.measurements;
+    if (m) {
+      m.height = h;
+      if (m.shoulder_width < h * 0.18 || m.shoulder_width > h * 0.32) m.shoulder_width = Math.round(h * 0.25);
+      if (m.chest_circumference < h * 0.40 || m.chest_circumference > h * 0.70) m.chest_circumference = Math.round(h * 0.55);
+      if (m.waist_circumference < h * 0.30 || m.waist_circumference > h * 0.60) m.waist_circumference = Math.round(h * (gender === "female" ? 0.40 : 0.45));
+      if (m.hip_circumference < h * 0.45 || m.hip_circumference > h * 0.70) m.hip_circumference = Math.round(h * 0.55);
+      if (m.inseam < h * 0.38 || m.inseam > h * 0.52) m.inseam = Math.round(h * 0.45);
+    }
+
+    // If confidence below 80, mark as low confidence
+    const confidence = measurements.confidence_scores?.overall || 0;
+    const finalStatus = confidence < 80 ? "low_confidence" : "completed";
+
     // Update job with results
     await supabase
       .from("body_scan_jobs")
       .update({
-        status: "completed",
-        result: measurements,
+        status: finalStatus === "low_confidence" ? "completed" : "completed",
+        result: { ...measurements, low_confidence: confidence < 80 },
         completed_at: new Date().toISOString(),
       })
       .eq("id", jobId);

@@ -608,15 +608,38 @@ const AIBodyScanner = () => {
               className="space-y-6"
             >
               {/* Confidence Score */}
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+              <div className={`flex items-center justify-between p-4 rounded-lg ${
+                result.confidence_scores.overall < 80 ? "bg-destructive/10 border border-destructive/20" : "bg-muted/50"
+              }`}>
                 <div>
                   <p className="text-sm text-muted-foreground">Overall Confidence</p>
                   <p className="text-2xl font-bold">{result.confidence_scores.overall}%</p>
                 </div>
-                <Badge variant={result.confidence_scores.overall >= 80 ? "default" : "secondary"}>
-                  {isDemoMode ? "Demo Data" : result.confidence_scores.overall >= 80 ? "High Accuracy" : "Moderate Accuracy"}
+                <Badge variant={result.confidence_scores.overall >= 80 ? "default" : "destructive"}>
+                  {isDemoMode ? "Demo Data" : result.confidence_scores.overall >= 80 ? "High Accuracy" : "Low Accuracy"}
                 </Badge>
               </div>
+
+              {/* Low confidence warning */}
+              {!isDemoMode && result.confidence_scores.overall < 80 && (
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground mb-1">
+                        Confidence below 80% — measurements may be inaccurate
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        For best results, ensure good lighting, wear form-fitting clothing, and stand against a plain background. Try rescanning for better accuracy.
+                      </p>
+                      <Button size="sm" variant="outline" onClick={resetScanner}>
+                        <RefreshCw className="w-3 h-3 mr-2" />
+                        Rescan
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Fit Recommendations */}
               <div className="grid grid-cols-4 gap-3">
@@ -742,13 +765,13 @@ const AIBodyScanner = () => {
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Scan Again
                 </Button>
-                <Button onClick={saveMeasurements} className="flex-1" disabled={isSaving}>
+                <Button onClick={saveMeasurements} className="flex-1" disabled={isSaving || (!isDemoMode && result.confidence_scores.overall < 80)}>
                   {isSaving ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <Save className="w-4 h-4 mr-2" />
                   )}
-                  Save Measurements
+                  {!isDemoMode && result.confidence_scores.overall < 80 ? "Rescan Required" : "Save Measurements"}
                 </Button>
               </div>
             </motion.div>

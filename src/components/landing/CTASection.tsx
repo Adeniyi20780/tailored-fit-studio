@@ -3,9 +3,11 @@ import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { ArrowRight, Store, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const CTASection = () => {
   const ref = useRef(null);
+  const navigate = useNavigate();
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
@@ -29,7 +31,7 @@ const CTASection = () => {
               Browse thousands of tailors, get AI-measured for the perfect fit,
               and receive custom clothing delivered to your door.
             </p>
-            <Button variant="hero" size="lg" className="group/btn">
+            <Button variant="hero" size="lg" className="group/btn" onClick={() => navigate("/catalog")}>
               Start Shopping
               <ArrowRight className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
             </Button>
@@ -56,6 +58,7 @@ const CTASection = () => {
               variant="heroOutline"
               size="lg"
               className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 group/btn"
+              onClick={() => navigate("/become-a-tailor")}
             >
               Create Your Store
               <ArrowRight className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />

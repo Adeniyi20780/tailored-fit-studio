@@ -4,17 +4,27 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 
-export const useSellerMessages = (tailorId: string | undefined) => {
+/** Generate a deterministic conversation ID from two user IDs and a tailor DB id */
+export const makeConversationId = (userId: string, tailorDbId: string) =>
+  `conv_${[userId, tailorDbId].sort().join("_")}`;
+
+/**
+ * Fetch & send messages for a specific conversation.
+ * Accepts EITHER a direct `conversationId` OR a `tailorId` (for backward compat).
+ */
+export const useSellerMessages = (
+  tailorId: string | undefined,
+  explicitConversationId?: string
+) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const getConversationId = (tailorDbId: string) => {
-    if (!user) return "";
-    return `conv_${[user.id, tailorDbId].sort().join("_")}`;
-  };
-
-  const conversationId = tailorId ? getConversationId(tailorId) : "";
+  const conversationId = explicitConversationId
+    ? explicitConversationId
+    : tailorId && user
+    ? makeConversationId(user.id, tailorId)
+    : "";
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ["seller-messages", conversationId],
@@ -34,13 +44,12 @@ export const useSellerMessages = (tailorId: string | undefined) => {
   // Realtime subscription
   useEffect(() => {
     if (!user || !conversationId) return;
-
     const channel = supabase
       .channel(`seller-messages-${conversationId}`)
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "seller_messages",
           filter: `conversation_id=eq.${conversationId}`,
@@ -50,10 +59,7 @@ export const useSellerMessages = (tailorId: string | undefined) => {
         }
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [user, conversationId, queryClient]);
 
   const sendMessage = useMutation({
@@ -61,10 +67,18 @@ export const useSellerMessages = (tailorId: string | undefined) => {
       content,
       receiverId,
       productId,
+      attachmentPath,
+      attachmentName,
+      attachmentMimeType,
+      attachmentSize,
     }: {
       content: string;
       receiverId: string;
       productId?: string;
+      attachmentPath?: string;
+      attachmentName?: string;
+      attachmentMimeType?: string;
+      attachmentSize?: number;
     }) => {
       if (!user || !tailorId) throw new Error("Not authenticated");
 
@@ -75,6 +89,10 @@ export const useSellerMessages = (tailorId: string | undefined) => {
         tailor_id: tailorId,
         product_id: productId || null,
         content,
+        attachment_path: attachmentPath || null,
+        attachment_name: attachmentName || null,
+        attachment_mime_type: attachmentMimeType || null,
+        attachment_size: attachmentSize || null,
       });
       if (error) throw error;
 
@@ -90,6 +108,7 @@ export const useSellerMessages = (tailorId: string | undefined) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["seller-messages", conversationId] });
+      queryClient.invalidateQueries({ queryKey: ["all-conversations"] });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to send message", variant: "destructive" });
@@ -115,7 +134,6 @@ export const useAllConversations = () => {
     queryFn: async () => {
       if (!user) return [];
 
-      // Get all messages where user is sender or receiver, grouped by conversation
       const { data, error } = await supabase
         .from("seller_messages")
         .select("*, tailors:tailor_id(id, store_name, logo_url, store_slug, user_id)")
@@ -162,7 +180,7 @@ export const useAllConversations = () => {
         }
       }
 
-      // Fetch product names for conversations that have a product_id
+      // Fetch product names
       const productIds = Array.from(
         new Set(convList.map((c) => c.product_id).filter(Boolean))
       );
@@ -192,16 +210,11 @@ export const useAllConversations = () => {
   // Realtime for any new message to the user
   useEffect(() => {
     if (!user) return;
-
     const channel = supabase
       .channel("all-seller-messages")
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "seller_messages",
-        },
+        { event: "INSERT", schema: "public", table: "seller_messages" },
         (payload) => {
           const msg = payload.new as any;
           if (msg.sender_id === user.id || msg.receiver_id === user.id) {
@@ -211,10 +224,7 @@ export const useAllConversations = () => {
         }
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [user, queryClient]);
 
   return { conversations, isLoading };
