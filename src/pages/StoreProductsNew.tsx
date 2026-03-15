@@ -22,6 +22,7 @@ const productSchema = z.object({
   fabric_types: z.array(z.string()).default([]),
   fabric_textures: z.array(z.string()).default([]),
   is_active: z.boolean().default(true),
+  stock: z.number().int().min(0).nullable().default(null),
 });
 
 const StoreProductsNew = () => {
