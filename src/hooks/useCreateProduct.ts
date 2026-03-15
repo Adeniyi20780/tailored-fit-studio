@@ -16,6 +16,7 @@ export interface ProductFormData {
   fabric_types: string[];
   fabric_textures: string[];
   is_active: boolean;
+  stock: number | null;
 }
 
 export const useCreateProduct = () => {
