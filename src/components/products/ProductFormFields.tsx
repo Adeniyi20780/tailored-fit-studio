@@ -165,6 +165,34 @@ const ProductFormFields = ({ form }: ProductFormFieldsProps) => {
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="stock"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Stock Quantity</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="Leave empty for unlimited"
+                  value={field.value ?? ""}
+                  onChange={(e) =>
+                    field.onChange(
+                      e.target.value === "" ? null : parseInt(e.target.value)
+                    )
+                  }
+                />
+              </FormControl>
+              <p className="text-xs text-muted-foreground">
+                Leave empty for unlimited stock
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </div>
 
       {/* Status */}

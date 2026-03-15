@@ -106,6 +106,7 @@ export const useCreateProduct = () => {
         fabrics,
         images: uploadedImages,
         is_active: data.is_active,
+        stock: data.stock,
         tailor_id: tailor.id,
       });
 

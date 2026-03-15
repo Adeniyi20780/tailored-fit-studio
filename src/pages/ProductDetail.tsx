@@ -333,8 +333,9 @@ const ProductDetail = () => {
                       </button>
                       <span className="w-10 text-center text-sm font-semibold">{quantity}</span>
                       <button
-                        className="p-2 hover:bg-muted transition-colors"
+                        className="p-2 hover:bg-muted transition-colors disabled:opacity-40"
                         onClick={() => setQuantity((q) => q + 1)}
+                        disabled={product?.stock != null && quantity >= product.stock}
                       >
                         <Plus className="h-4 w-4" />
                       </button>
