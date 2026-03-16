@@ -20,7 +20,9 @@ import {
   TrendingUp,
   CheckCircle,
   Clock,
+  ArrowLeft,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Store = () => {
   const { user } = useAuth();
