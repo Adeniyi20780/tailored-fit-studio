@@ -40,7 +40,7 @@ export const TailorCard = ({ tailor }: TailorCardProps) => {
         {/* Verified badge */}
         {tailor.is_verified && (
           <div className="absolute top-3 right-3">
-            <Badge className="gap-1 bg-blue-500 hover:bg-blue-600">
+            <Badge className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
               <BadgeCheck className="h-3 w-3" />
               Verified
             </Badge>
