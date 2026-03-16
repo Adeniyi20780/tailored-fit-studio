@@ -59,7 +59,7 @@ const StoreProductsNew = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b bg-card">
+      <div className="border-b bg-card mt-20">
         <div className="container max-w-5xl py-6">
           <div className="flex items-center gap-4">
             <Link to="/store">

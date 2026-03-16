@@ -270,7 +270,12 @@ const ChatPanel = ({ conv, onBack }: { conv: any; onBack: () => void }) => {
   const { markAsRead } = useConversationActions();
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      const scrollContainer = messagesEndRef.current.closest('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
   }, [messages]);
 
   // Mark as read when opening

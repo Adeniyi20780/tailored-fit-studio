@@ -127,7 +127,7 @@
        return <Badge variant="destructive">Rejected</Badge>;
      }
      if (tailor.is_verified) {
-      return <Badge className="bg-primary">Verified</Badge>;
+      return <Badge variant="default">Verified</Badge>;
      }
      return <Badge variant="secondary">Pending</Badge>;
    };
