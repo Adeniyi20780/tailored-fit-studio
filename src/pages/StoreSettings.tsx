@@ -130,7 +130,7 @@ const StoreSettings = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="container mx-auto p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="container mx-auto p-6 lg:p-8 pt-24 flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-muted-foreground">Loading store settings...</p>
