@@ -75,6 +75,7 @@ const ProductEditModal = ({
       base_price: 0,
       currency: "USD",
       is_active: true,
+      stock: null,
     },
   });
 
