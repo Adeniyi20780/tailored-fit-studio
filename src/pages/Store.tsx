@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStoreAnalytics } from "@/hooks/useStoreAnalytics";
 import StatsCard from "@/components/store/StatsCard";
