@@ -102,6 +102,7 @@ const ProductEditModal = ({
         base_price: data.base_price,
         currency: data.currency,
         is_active: data.is_active,
+        stock: data.stock,
       });
       onOpenChange(false);
     }
