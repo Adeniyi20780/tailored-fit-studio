@@ -88,6 +88,7 @@ const ProductEditModal = ({
         base_price: Number(product.base_price),
         currency: product.currency || "USD",
         is_active: product.is_active ?? true,
+        stock: product.stock ?? null,
       });
     }
   }, [product, form]);
