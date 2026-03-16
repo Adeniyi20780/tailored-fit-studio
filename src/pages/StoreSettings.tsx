@@ -144,7 +144,7 @@ const StoreSettings = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="container mx-auto p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="container mx-auto p-6 lg:p-8 pt-24 flex items-center justify-center min-h-[60vh]">
           <Card className="max-w-md">
             <CardContent className="pt-6 text-center">
               <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
