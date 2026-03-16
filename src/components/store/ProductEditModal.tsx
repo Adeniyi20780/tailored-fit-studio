@@ -38,6 +38,7 @@ const productSchema = z.object({
   base_price: z.number().min(0.01, "Price must be greater than 0"),
   currency: z.string().default("USD"),
   is_active: z.boolean().default(true),
+  stock: z.number().int().min(0).nullable().default(null),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
