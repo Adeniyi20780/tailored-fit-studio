@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Package, Clock, CheckCircle, XCircle, Truck, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Package, Clock, CheckCircle, XCircle, Truck, AlertCircle, ArrowLeft } from "lucide-react";
 import { useStoreOrders, OrderWithDetails, ORDER_STATUSES } from "@/hooks/useStoreOrders";
 import OrdersTable from "@/components/store/OrdersTable";
 import OrdersFilters from "@/components/store/OrdersFilters";
