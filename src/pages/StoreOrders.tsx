@@ -58,7 +58,7 @@ const StoreOrders = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto p-6 lg:p-8 pt-24">
+      <div className="container mx-auto px-6 pb-6 pt-24 lg:px-8 lg:pb-8">
         {/* Page Header */}
         <div className="flex items-center gap-4 mb-8">
           <Link to="/store">
