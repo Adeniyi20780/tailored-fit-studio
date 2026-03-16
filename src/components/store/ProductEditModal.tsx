@@ -38,6 +38,7 @@ const productSchema = z.object({
   base_price: z.number().min(0.01, "Price must be greater than 0"),
   currency: z.string().default("USD"),
   is_active: z.boolean().default(true),
+  stock: z.number().int().min(0).nullable().default(null),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -74,6 +75,7 @@ const ProductEditModal = ({
       base_price: 0,
       currency: "USD",
       is_active: true,
+      stock: null,
     },
   });
 
@@ -86,6 +88,7 @@ const ProductEditModal = ({
         base_price: Number(product.base_price),
         currency: product.currency || "USD",
         is_active: product.is_active ?? true,
+        stock: product.stock ?? null,
       });
     }
   }, [product, form]);
@@ -99,6 +102,7 @@ const ProductEditModal = ({
         base_price: data.base_price,
         currency: data.currency,
         is_active: data.is_active,
+        stock: data.stock,
       });
       onOpenChange(false);
     }
@@ -214,6 +218,32 @@ const ProductEditModal = ({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="stock"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Stock Quantity</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="Leave empty for unlimited"
+                      value={field.value ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === "" ? null : parseInt(val, 10));
+                      }}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty for unlimited stock
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
