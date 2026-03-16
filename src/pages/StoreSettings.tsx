@@ -163,7 +163,7 @@ const StoreSettings = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto p-6 lg:p-8 max-w-4xl">
+      <div className="container mx-auto p-6 lg:p-8 pt-24 max-w-4xl">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>

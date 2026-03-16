@@ -36,7 +36,7 @@ const Store = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto p-6 lg:p-8">
+      <div className="container mx-auto p-6 lg:p-8 pt-24">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
