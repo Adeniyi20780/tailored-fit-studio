@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStoreAnalytics } from "@/hooks/useStoreAnalytics";
 import StatsCard from "@/components/store/StatsCard";
@@ -19,7 +20,9 @@ import {
   TrendingUp,
   CheckCircle,
   Clock,
+  ArrowLeft,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Store = () => {
   const { user } = useAuth();
@@ -38,13 +41,20 @@ const Store = () => {
       <Header />
       <div className="container mx-auto px-6 pb-6 pt-24 lg:px-8 lg:pb-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">
-            {tailor?.store_name || "Store"} Dashboard
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Welcome back! Here's an overview of your store performance.
-          </p>
+        <div className="flex items-center gap-4 mb-8">
+          <Link to="/dashboard">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              {tailor?.store_name || "Store"} Dashboard
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Welcome back! Here's an overview of your store performance.
+            </p>
+          </div>
         </div>
 
         {/* Stats Cards */}
