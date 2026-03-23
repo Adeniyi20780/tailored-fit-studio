@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Camera, Check, Ruler, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const measurements = [
   "Height",
@@ -20,6 +22,16 @@ const measurements = [
 const MeasurementPreviewSection = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const handleTryMeasurement = () => {
+    if (user) {
+      navigate("/body-scanner");
+    } else {
+      navigate("/auth");
+    }
+  };
 
   return (
     <section ref={ref} className="py-24 bg-hero-gradient text-primary-foreground overflow-hidden">
@@ -64,7 +76,7 @@ const MeasurementPreviewSection = () => {
               ))}
             </div>
 
-            <Button variant="hero" size="lg">
+            <Button variant="hero" size="lg" onClick={handleTryMeasurement}>
               Try AI Measurement
             </Button>
           </motion.div>
