@@ -22,6 +22,16 @@ const measurements = [
 const MeasurementPreviewSection = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const handleTryMeasurement = () => {
+    if (user) {
+      navigate("/body-scanner");
+    } else {
+      navigate("/auth");
+    }
+  };
 
   return (
     <section ref={ref} className="py-24 bg-hero-gradient text-primary-foreground overflow-hidden">
