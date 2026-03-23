@@ -63,7 +63,7 @@ const Auth = () => {
 
   const isLovableHosted = () => {
     const hostname = window.location.hostname;
-    return hostname.includes("lovable.app") || hostname.includes("lovable.dev");
+    return hostname.includes("lovable.app") || hostname.includes("lovable.dev") || hostname.includes("lovableproject.com");
   };
 
   const handleGoogleSignIn = async () => {
