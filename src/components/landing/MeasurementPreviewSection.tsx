@@ -76,7 +76,7 @@ const MeasurementPreviewSection = () => {
               ))}
             </div>
 
-            <Button variant="hero" size="lg">
+            <Button variant="hero" size="lg" onClick={handleTryMeasurement}>
               Try AI Measurement
             </Button>
           </motion.div>
