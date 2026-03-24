@@ -876,13 +876,13 @@ const AIBodyScanner = () => {
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Scan Again
                 </Button>
-                <Button onClick={saveMeasurements} className="flex-1" disabled={isSaving || (!isDemoMode && result.confidence_scores.overall < 80)}>
+                <Button onClick={saveMeasurements} className="flex-1" disabled={isSaving || (!isDemoMode && result.confidence_scores.overall < 70)}>
                   {isSaving ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <Save className="w-4 h-4 mr-2" />
                   )}
-                  {!isDemoMode && result.confidence_scores.overall < 80 ? "Rescan Required" : "Save Measurements"}
+                  {!isDemoMode && result.confidence_scores.overall < 70 ? "Rescan Required" : "Save Measurements"}
                 </Button>
               </div>
             </motion.div>
