@@ -99,6 +99,7 @@ const AIBodyScanner = () => {
   const [result, setResult] = useState<MeasurementResult | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
 
   // Background job hook for async processing
   const {
