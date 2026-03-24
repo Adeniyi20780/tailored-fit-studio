@@ -23,7 +23,8 @@ import {
   Loader2,
   RefreshCw,
   Save,
-  Wand2
+  Wand2,
+  Sun
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
