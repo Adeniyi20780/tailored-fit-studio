@@ -693,28 +693,55 @@ const AIBodyScanner = () => {
             >
               {/* Confidence Score */}
               <div className={`flex items-center justify-between p-4 rounded-lg ${
-                result.confidence_scores.overall < 80 ? "bg-destructive/10 border border-destructive/20" : "bg-muted/50"
+                result.confidence_scores.overall < 70 
+                  ? "bg-destructive/10 border border-destructive/20" 
+                  : result.confidence_scores.overall < 80 
+                    ? "bg-yellow-500/10 border border-yellow-500/20" 
+                    : "bg-muted/50"
               }`}>
                 <div>
                   <p className="text-sm text-muted-foreground">Overall Confidence</p>
                   <p className="text-2xl font-bold">{result.confidence_scores.overall}%</p>
                 </div>
-                <Badge variant={result.confidence_scores.overall >= 80 ? "default" : "destructive"}>
-                  {isDemoMode ? "Demo Data" : result.confidence_scores.overall >= 80 ? "High Accuracy" : "Low Accuracy"}
+                <Badge variant={
+                  isDemoMode ? "secondary" :
+                  result.confidence_scores.overall >= 80 ? "default" : 
+                  result.confidence_scores.overall >= 70 ? "outline" : "destructive"
+                }>
+                  {isDemoMode ? "Demo Data" : 
+                   result.confidence_scores.overall >= 80 ? "High Accuracy" : 
+                   result.confidence_scores.overall >= 70 ? "Acceptable" : "Low Accuracy"}
                 </Badge>
               </div>
 
-              {/* Low confidence warning */}
-              {!isDemoMode && result.confidence_scores.overall < 80 && (
+              {/* Acceptable confidence banner (70-79%) */}
+              {!isDemoMode && result.confidence_scores.overall >= 70 && result.confidence_scores.overall < 80 && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground mb-1">
+                        Measurements are usable but could be improved
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        For higher accuracy, try rescanning with better lighting, form-fitting clothing, and a plain background.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Low confidence warning (<70%) */}
+              {!isDemoMode && result.confidence_scores.overall < 70 && (
                 <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-foreground mb-1">
-                        Confidence below 80% — measurements may be inaccurate
+                        Confidence too low — rescan required
                       </p>
                       <p className="text-xs text-muted-foreground mb-3">
-                        For best results, ensure good lighting, wear form-fitting clothing, and stand against a plain background. Try rescanning for better accuracy.
+                        Ensure good lighting, wear form-fitting clothing, and stand against a plain background.
                       </p>
                       <Button size="sm" variant="outline" onClick={resetScanner}>
                         <RefreshCw className="w-3 h-3 mr-2" />
