@@ -593,6 +593,15 @@ const AIBodyScanner = () => {
                         <RefreshCw className="w-5 h-5" />
                       </button>
                     )}
+                    {/* Brightness indicator */}
+                    <div className={`absolute top-4 right-16 flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                      brightnessLevel < 60 ? "bg-destructive/80 text-white" : 
+                      brightnessLevel < 100 ? "bg-yellow-500/80 text-white" : 
+                      "bg-black/40 text-white"
+                    }`}>
+                      <Sun className="w-3 h-3" />
+                      {brightnessLevel < 60 ? "Too Dark" : brightnessLevel < 100 ? "Low Light" : "Good"}
+                    </div>
                   </>
                 )}
                 
