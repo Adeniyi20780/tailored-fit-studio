@@ -207,11 +207,11 @@ Use the following structure (all values in centimeters):
     const m = measurements.measurements;
     if (m) {
       m.height = h;
-      if (m.shoulder_width < h * 0.18 || m.shoulder_width > h * 0.32) m.shoulder_width = Math.round(h * 0.25);
-      if (m.chest_circumference < h * 0.40 || m.chest_circumference > h * 0.70) m.chest_circumference = Math.round(h * 0.55);
-      if (m.waist_circumference < h * 0.30 || m.waist_circumference > h * 0.60) m.waist_circumference = Math.round(h * (gender === "female" ? 0.40 : 0.45));
-      if (m.hip_circumference < h * 0.45 || m.hip_circumference > h * 0.70) m.hip_circumference = Math.round(h * 0.55);
-      if (m.inseam < h * 0.38 || m.inseam > h * 0.52) m.inseam = Math.round(h * 0.45);
+      if (m.shoulder_width < h * 0.17 || m.shoulder_width > h * 0.33) m.shoulder_width = Math.round(h * 0.25);
+      if (m.chest_circumference < h * 0.42 || m.chest_circumference > h * 0.68) m.chest_circumference = Math.round(h * 0.55);
+      if (m.waist_circumference < h * 0.30 || m.waist_circumference > h * 0.58) m.waist_circumference = Math.round(h * (gender === "female" ? 0.40 : 0.45));
+      if (m.hip_circumference < h * 0.42 || m.hip_circumference > h * 0.70) m.hip_circumference = Math.round(h * 0.55);
+      if (m.inseam < h * 0.36 || m.inseam > h * 0.52) m.inseam = Math.round(h * 0.45);
     }
 
     // If confidence below 80, mark as low confidence

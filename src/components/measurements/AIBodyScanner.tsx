@@ -474,7 +474,7 @@ const AIBodyScanner = () => {
                 </h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Wear form-fitting clothing (avoid loose/baggy clothes)</li>
-                  <li>• Ensure good, even lighting</li>
+                  <li>• Ensure good, even lighting — turn on room lights or use a lamp behind the camera</li>
                   <li>• Stand against a plain background</li>
                   <li>• Keep arms slightly away from body</li>
                 </ul>
