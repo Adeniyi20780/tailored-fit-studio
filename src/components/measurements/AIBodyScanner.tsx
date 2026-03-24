@@ -261,8 +261,8 @@ const AIBodyScanner = () => {
     setCaptureProgress(0);
 
     const frames: string[] = [];
-    const totalFrames = 12;
-    const intervalMs = 2500;
+    const totalFrames = 16;
+    const intervalMs = 1875; // ~30s total
 
     for (let i = 0; i < totalFrames; i++) {
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
