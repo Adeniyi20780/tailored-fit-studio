@@ -512,8 +512,18 @@ const AIBodyScanner = () => {
                       playsInline
                       muted
                       className="w-full h-full object-cover"
+                      style={facingMode === "user" ? { transform: "scaleX(-1)" } : undefined}
                     />
                     <canvas ref={canvasRef} className="hidden" />
+                    {!isCapturing && (
+                      <button
+                        onClick={toggleCamera}
+                        className="absolute top-4 left-4 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                        aria-label="Switch camera"
+                      >
+                        <RefreshCw className="w-5 h-5" />
+                      </button>
+                    )}
                   </>
                 )}
                 
