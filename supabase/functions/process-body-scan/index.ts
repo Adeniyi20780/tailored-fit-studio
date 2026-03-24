@@ -74,7 +74,7 @@ serve(async (req) => {
     const gender = job.gender;
 
     // Build image content for the AI model
-    const imageContent = images.slice(0, 8).map((img: string) => ({
+    const imageContent = images.slice(0, 10).map((img: string) => ({
       type: "image_url" as const,
       image_url: {
         url: img.startsWith("data:") ? img : `data:image/jpeg;base64,${img}`,
@@ -86,17 +86,27 @@ serve(async (req) => {
 Given the person's stated height of ${height_cm}cm and gender (${gender}), analyze the provided images and estimate the following measurements in centimeters.
 
 CRITICAL ACCURACY RULES:
-1. Use the stated height as your PRIMARY reference for calculating all proportional measurements.
+1. Use the stated height as your PRIMARY reference for calculating all proportional measurements. When image quality is poor, RELY HEAVILY on height-based anatomical ratios rather than trying to visually measure from unclear images.
 2. Apply standard anatomical ratios as sanity checks:
-   - Shoulder width is typically 22-28% of height
-   - Chest circumference is typically 50-60% of height
-   - Waist circumference is typically 40-50% of height for males, 35-45% for females
-   - Inseam is typically 43-47% of height
-   - Arm length is typically 32-36% of height
-   - Neck circumference is typically 20-25% of height
+   - Shoulder width is typically 20-30% of height
+   - Chest circumference is typically 48-62% of height
+   - Waist circumference is typically 38-52% of height for males, 33-48% for females
+   - Inseam is typically 41-49% of height
+   - Arm length is typically 30-38% of height
+   - Neck circumference is typically 18-26% of height
+   - Hip circumference is typically 48-65% of height
 3. If any measurement falls outside expected anatomical ranges, adjust it to the nearest reasonable value.
-4. Set confidence scores HONESTLY based on image quality, visibility, and pose quality.
-5. Only report confidence >= 80 if images clearly show the full body with good lighting and minimal occlusion.
+4. Set confidence scores based on image quality, visibility, and pose quality with these guidelines:
+   - 80-100: Clear full body visible, good lighting, minimal occlusion
+   - 70-79: Body visible but moderate lighting issues, slight occlusion, or some pose imperfections — measurements are still USABLE for tailoring
+   - 60-69: Significant visibility issues but body outline discernible — use proportional estimation heavily
+   - Below 60: Body barely visible or major issues — measurements unreliable
+5. DO NOT penalize confidence excessively for moderate low-light conditions. If you can see the body outline and general proportions, confidence should be at least 70. Reserve sub-70 scores for genuinely unreadable images.
+
+LOW-LIGHT ADAPTATION:
+- Images may have been pre-processed with brightness/contrast enhancement. Use whatever visual cues are available.
+- When lighting is uneven, use the best-lit frames as primary references and cross-check against proportional ratios.
+- Prioritize the stated height as anchor and derive measurements proportionally when visual clarity is limited.
 
 Output ONLY a valid JSON object (NO markdown, NO prose, NO code fences). Keep output concise.
 The "notes" field MUST be an empty string ("") to prevent long text from truncating the JSON.
@@ -197,11 +207,11 @@ Use the following structure (all values in centimeters):
     const m = measurements.measurements;
     if (m) {
       m.height = h;
-      if (m.shoulder_width < h * 0.18 || m.shoulder_width > h * 0.32) m.shoulder_width = Math.round(h * 0.25);
-      if (m.chest_circumference < h * 0.40 || m.chest_circumference > h * 0.70) m.chest_circumference = Math.round(h * 0.55);
-      if (m.waist_circumference < h * 0.30 || m.waist_circumference > h * 0.60) m.waist_circumference = Math.round(h * (gender === "female" ? 0.40 : 0.45));
-      if (m.hip_circumference < h * 0.45 || m.hip_circumference > h * 0.70) m.hip_circumference = Math.round(h * 0.55);
-      if (m.inseam < h * 0.38 || m.inseam > h * 0.52) m.inseam = Math.round(h * 0.45);
+      if (m.shoulder_width < h * 0.17 || m.shoulder_width > h * 0.33) m.shoulder_width = Math.round(h * 0.25);
+      if (m.chest_circumference < h * 0.42 || m.chest_circumference > h * 0.68) m.chest_circumference = Math.round(h * 0.55);
+      if (m.waist_circumference < h * 0.30 || m.waist_circumference > h * 0.58) m.waist_circumference = Math.round(h * (gender === "female" ? 0.40 : 0.45));
+      if (m.hip_circumference < h * 0.42 || m.hip_circumference > h * 0.70) m.hip_circumference = Math.round(h * 0.55);
+      if (m.inseam < h * 0.36 || m.inseam > h * 0.52) m.inseam = Math.round(h * 0.45);
     }
 
     // If confidence below 80, mark as low confidence

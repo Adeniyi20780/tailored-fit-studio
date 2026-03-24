@@ -23,7 +23,8 @@ import {
   Loader2,
   RefreshCw,
   Save,
-  Wand2
+  Wand2,
+  Sun
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -100,6 +101,8 @@ const AIBodyScanner = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [brightnessLevel, setBrightnessLevel] = useState<number>(128);
+  const brightnessIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Background job hook for async processing
   const {
@@ -174,6 +177,71 @@ const AIBodyScanner = () => {
     setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
   };
 
+  // Measure average brightness from video feed
+  const measureBrightness = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (video.videoWidth === 0) return;
+    canvas.width = 160; // small sample for performance
+    canvas.height = 120;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, 160, 120);
+    const imageData = ctx.getImageData(0, 0, 160, 120);
+    const data = imageData.data;
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 16) { // sample every 4th pixel
+      sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+    }
+    const avg = sum / (data.length / 16);
+    setBrightnessLevel(Math.round(avg));
+  }, []);
+
+  // Start brightness monitoring when camera is active
+  useEffect(() => {
+    if (step === "capture" && !isDemoMode) {
+      brightnessIntervalRef.current = setInterval(measureBrightness, 1000);
+    }
+    return () => {
+      if (brightnessIntervalRef.current) {
+        clearInterval(brightnessIntervalRef.current);
+        brightnessIntervalRef.current = null;
+      }
+    };
+  }, [step, isDemoMode, measureBrightness]);
+
+  // Enhance image: boost brightness & contrast for low-light frames
+  const enhanceFrame = useCallback((canvas: HTMLCanvasElement) => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // Calculate average luminance
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+    }
+    const avgLum = sum / (data.length / 4);
+
+    // Only enhance if below threshold (dim image)
+    if (avgLum < 120) {
+      const brightnessFactor = Math.min(1.6, 130 / Math.max(avgLum, 30));
+      const contrast = 1.15;
+      const mid = 128;
+      for (let i = 0; i < data.length; i += 4) {
+        for (let c = 0; c < 3; c++) {
+          let val = data[i + c];
+          val = val * brightnessFactor;
+          val = ((val - mid) * contrast) + mid;
+          data[i + c] = Math.max(0, Math.min(255, val));
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+  }, []);
+
   const captureFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return null;
     const video = videoRef.current;
@@ -183,8 +251,9 @@ const AIBodyScanner = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
     ctx.drawImage(video, 0, 0);
-    return canvas.toDataURL("image/jpeg", 0.8);
-  }, []);
+    enhanceFrame(canvas);
+    return canvas.toDataURL("image/jpeg", 0.92);
+  }, [enhanceFrame]);
 
   const startCapture = async () => {
     setIsCapturing(true);
@@ -192,8 +261,8 @@ const AIBodyScanner = () => {
     setCaptureProgress(0);
 
     const frames: string[] = [];
-    const totalFrames = 12;
-    const intervalMs = 2500;
+    const totalFrames = 16;
+    const intervalMs = 1875; // ~30s total
 
     for (let i = 0; i < totalFrames; i++) {
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
@@ -405,7 +474,7 @@ const AIBodyScanner = () => {
                 </h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Wear form-fitting clothing (avoid loose/baggy clothes)</li>
-                  <li>• Ensure good, even lighting</li>
+                  <li>• Ensure good, even lighting — turn on room lights or use a lamp behind the camera</li>
                   <li>• Stand against a plain background</li>
                   <li>• Keep arms slightly away from body</li>
                 </ul>
@@ -524,6 +593,15 @@ const AIBodyScanner = () => {
                         <RefreshCw className="w-5 h-5" />
                       </button>
                     )}
+                    {/* Brightness indicator */}
+                    <div className={`absolute top-4 right-16 flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                      brightnessLevel < 60 ? "bg-destructive/80 text-white" : 
+                      brightnessLevel < 100 ? "bg-yellow-500/80 text-white" : 
+                      "bg-black/40 text-white"
+                    }`}>
+                      <Sun className="w-3 h-3" />
+                      {brightnessLevel < 60 ? "Too Dark" : brightnessLevel < 100 ? "Low Light" : "Good"}
+                    </div>
                   </>
                 )}
                 
@@ -624,28 +702,55 @@ const AIBodyScanner = () => {
             >
               {/* Confidence Score */}
               <div className={`flex items-center justify-between p-4 rounded-lg ${
-                result.confidence_scores.overall < 80 ? "bg-destructive/10 border border-destructive/20" : "bg-muted/50"
+                result.confidence_scores.overall < 70 
+                  ? "bg-destructive/10 border border-destructive/20" 
+                  : result.confidence_scores.overall < 80 
+                    ? "bg-yellow-500/10 border border-yellow-500/20" 
+                    : "bg-muted/50"
               }`}>
                 <div>
                   <p className="text-sm text-muted-foreground">Overall Confidence</p>
                   <p className="text-2xl font-bold">{result.confidence_scores.overall}%</p>
                 </div>
-                <Badge variant={result.confidence_scores.overall >= 80 ? "default" : "destructive"}>
-                  {isDemoMode ? "Demo Data" : result.confidence_scores.overall >= 80 ? "High Accuracy" : "Low Accuracy"}
+                <Badge variant={
+                  isDemoMode ? "secondary" :
+                  result.confidence_scores.overall >= 80 ? "default" : 
+                  result.confidence_scores.overall >= 70 ? "outline" : "destructive"
+                }>
+                  {isDemoMode ? "Demo Data" : 
+                   result.confidence_scores.overall >= 80 ? "High Accuracy" : 
+                   result.confidence_scores.overall >= 70 ? "Acceptable" : "Low Accuracy"}
                 </Badge>
               </div>
 
-              {/* Low confidence warning */}
-              {!isDemoMode && result.confidence_scores.overall < 80 && (
+              {/* Acceptable confidence banner (70-79%) */}
+              {!isDemoMode && result.confidence_scores.overall >= 70 && result.confidence_scores.overall < 80 && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground mb-1">
+                        Measurements are usable but could be improved
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        For higher accuracy, try rescanning with better lighting, form-fitting clothing, and a plain background.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Low confidence warning (<70%) */}
+              {!isDemoMode && result.confidence_scores.overall < 70 && (
                 <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-foreground mb-1">
-                        Confidence below 80% — measurements may be inaccurate
+                        Confidence too low — rescan required
                       </p>
                       <p className="text-xs text-muted-foreground mb-3">
-                        For best results, ensure good lighting, wear form-fitting clothing, and stand against a plain background. Try rescanning for better accuracy.
+                        Ensure good lighting, wear form-fitting clothing, and stand against a plain background.
                       </p>
                       <Button size="sm" variant="outline" onClick={resetScanner}>
                         <RefreshCw className="w-3 h-3 mr-2" />
@@ -780,13 +885,13 @@ const AIBodyScanner = () => {
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Scan Again
                 </Button>
-                <Button onClick={saveMeasurements} className="flex-1" disabled={isSaving || (!isDemoMode && result.confidence_scores.overall < 80)}>
+                <Button onClick={saveMeasurements} className="flex-1" disabled={isSaving || (!isDemoMode && result.confidence_scores.overall < 70)}>
                   {isSaving ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <Save className="w-4 h-4 mr-2" />
                   )}
-                  {!isDemoMode && result.confidence_scores.overall < 80 ? "Rescan Required" : "Save Measurements"}
+                  {!isDemoMode && result.confidence_scores.overall < 70 ? "Rescan Required" : "Save Measurements"}
                 </Button>
               </div>
             </motion.div>
