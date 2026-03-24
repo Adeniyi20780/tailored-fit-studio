@@ -177,6 +177,71 @@ const AIBodyScanner = () => {
     setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
   };
 
+  // Measure average brightness from video feed
+  const measureBrightness = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (video.videoWidth === 0) return;
+    canvas.width = 160; // small sample for performance
+    canvas.height = 120;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, 160, 120);
+    const imageData = ctx.getImageData(0, 0, 160, 120);
+    const data = imageData.data;
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 16) { // sample every 4th pixel
+      sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+    }
+    const avg = sum / (data.length / 16);
+    setBrightnessLevel(Math.round(avg));
+  }, []);
+
+  // Start brightness monitoring when camera is active
+  useEffect(() => {
+    if (step === "capture" && !isDemoMode) {
+      brightnessIntervalRef.current = setInterval(measureBrightness, 1000);
+    }
+    return () => {
+      if (brightnessIntervalRef.current) {
+        clearInterval(brightnessIntervalRef.current);
+        brightnessIntervalRef.current = null;
+      }
+    };
+  }, [step, isDemoMode, measureBrightness]);
+
+  // Enhance image: boost brightness & contrast for low-light frames
+  const enhanceFrame = useCallback((canvas: HTMLCanvasElement) => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // Calculate average luminance
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+    }
+    const avgLum = sum / (data.length / 4);
+
+    // Only enhance if below threshold (dim image)
+    if (avgLum < 120) {
+      const brightnessFactor = Math.min(1.6, 130 / Math.max(avgLum, 30));
+      const contrast = 1.15;
+      const mid = 128;
+      for (let i = 0; i < data.length; i += 4) {
+        for (let c = 0; c < 3; c++) {
+          let val = data[i + c];
+          val = val * brightnessFactor;
+          val = ((val - mid) * contrast) + mid;
+          data[i + c] = Math.max(0, Math.min(255, val));
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+  }, []);
+
   const captureFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return null;
     const video = videoRef.current;
@@ -186,8 +251,9 @@ const AIBodyScanner = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
     ctx.drawImage(video, 0, 0);
-    return canvas.toDataURL("image/jpeg", 0.8);
-  }, []);
+    enhanceFrame(canvas);
+    return canvas.toDataURL("image/jpeg", 0.92);
+  }, [enhanceFrame]);
 
   const startCapture = async () => {
     setIsCapturing(true);
