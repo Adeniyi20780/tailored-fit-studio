@@ -74,7 +74,7 @@ serve(async (req) => {
     const gender = job.gender;
 
     // Build image content for the AI model
-    const imageContent = images.slice(0, 8).map((img: string) => ({
+    const imageContent = images.slice(0, 10).map((img: string) => ({
       type: "image_url" as const,
       image_url: {
         url: img.startsWith("data:") ? img : `data:image/jpeg;base64,${img}`,
