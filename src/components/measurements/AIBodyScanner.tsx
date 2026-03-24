@@ -101,6 +101,8 @@ const AIBodyScanner = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [brightnessLevel, setBrightnessLevel] = useState<number>(128);
+  const brightnessIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Background job hook for async processing
   const {
