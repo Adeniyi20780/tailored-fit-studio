@@ -135,7 +135,7 @@ const AIBodyScanner = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: "environment",
+          facingMode: facingMode,
           width: { ideal: 1280 },
           height: { ideal: 720 },
         },
