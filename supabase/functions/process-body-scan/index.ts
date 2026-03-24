@@ -86,17 +86,27 @@ serve(async (req) => {
 Given the person's stated height of ${height_cm}cm and gender (${gender}), analyze the provided images and estimate the following measurements in centimeters.
 
 CRITICAL ACCURACY RULES:
-1. Use the stated height as your PRIMARY reference for calculating all proportional measurements.
+1. Use the stated height as your PRIMARY reference for calculating all proportional measurements. When image quality is poor, RELY HEAVILY on height-based anatomical ratios rather than trying to visually measure from unclear images.
 2. Apply standard anatomical ratios as sanity checks:
-   - Shoulder width is typically 22-28% of height
-   - Chest circumference is typically 50-60% of height
-   - Waist circumference is typically 40-50% of height for males, 35-45% for females
-   - Inseam is typically 43-47% of height
-   - Arm length is typically 32-36% of height
-   - Neck circumference is typically 20-25% of height
+   - Shoulder width is typically 20-30% of height
+   - Chest circumference is typically 48-62% of height
+   - Waist circumference is typically 38-52% of height for males, 33-48% for females
+   - Inseam is typically 41-49% of height
+   - Arm length is typically 30-38% of height
+   - Neck circumference is typically 18-26% of height
+   - Hip circumference is typically 48-65% of height
 3. If any measurement falls outside expected anatomical ranges, adjust it to the nearest reasonable value.
-4. Set confidence scores HONESTLY based on image quality, visibility, and pose quality.
-5. Only report confidence >= 80 if images clearly show the full body with good lighting and minimal occlusion.
+4. Set confidence scores based on image quality, visibility, and pose quality with these guidelines:
+   - 80-100: Clear full body visible, good lighting, minimal occlusion
+   - 70-79: Body visible but moderate lighting issues, slight occlusion, or some pose imperfections — measurements are still USABLE for tailoring
+   - 60-69: Significant visibility issues but body outline discernible — use proportional estimation heavily
+   - Below 60: Body barely visible or major issues — measurements unreliable
+5. DO NOT penalize confidence excessively for moderate low-light conditions. If you can see the body outline and general proportions, confidence should be at least 70. Reserve sub-70 scores for genuinely unreadable images.
+
+LOW-LIGHT ADAPTATION:
+- Images may have been pre-processed with brightness/contrast enhancement. Use whatever visual cues are available.
+- When lighting is uneven, use the best-lit frames as primary references and cross-check against proportional ratios.
+- Prioritize the stated height as anchor and derive measurements proportionally when visual clarity is limited.
 
 Output ONLY a valid JSON object (NO markdown, NO prose, NO code fences). Keep output concise.
 The "notes" field MUST be an empty string ("") to prevent long text from truncating the JSON.
