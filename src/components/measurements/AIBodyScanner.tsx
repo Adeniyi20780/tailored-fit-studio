@@ -99,6 +99,7 @@ const AIBodyScanner = () => {
   const [result, setResult] = useState<MeasurementResult | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
 
   // Background job hook for async processing
   const {
@@ -134,7 +135,7 @@ const AIBodyScanner = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: "environment",
+          facingMode: facingMode,
           width: { ideal: 1280 },
           height: { ideal: 720 },
         },
@@ -167,7 +168,11 @@ const AIBodyScanner = () => {
       stopCamera();
     }
     return () => stopCamera();
-  }, [step, isDemoMode]);
+  }, [step, isDemoMode, facingMode]);
+
+  const toggleCamera = () => {
+    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+  };
 
   const captureFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return null;
@@ -507,8 +512,18 @@ const AIBodyScanner = () => {
                       playsInline
                       muted
                       className="w-full h-full object-cover"
+                      style={facingMode === "user" ? { transform: "scaleX(-1)" } : undefined}
                     />
                     <canvas ref={canvasRef} className="hidden" />
+                    {!isCapturing && (
+                      <button
+                        onClick={toggleCamera}
+                        className="absolute top-4 left-4 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                        aria-label="Switch camera"
+                      >
+                        <RefreshCw className="w-5 h-5" />
+                      </button>
+                    )}
                   </>
                 )}
                 
