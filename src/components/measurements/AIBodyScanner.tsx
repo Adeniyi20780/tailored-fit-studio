@@ -168,7 +168,11 @@ const AIBodyScanner = () => {
       stopCamera();
     }
     return () => stopCamera();
-  }, [step, isDemoMode]);
+  }, [step, isDemoMode, facingMode]);
+
+  const toggleCamera = () => {
+    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+  };
 
   const captureFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return null;
