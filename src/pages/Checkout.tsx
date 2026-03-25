@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ShieldCheck, Loader2, CheckCircle, ShoppingCart, CreditCard, Wallet } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Loader2, CheckCircle, ShoppingCart, CreditCard, Wallet, Share2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Header from '@/components/layout/Header';
@@ -70,6 +71,7 @@ export default function Checkout() {
   const [orderNumbers, setOrderNumbers] = useState<string[]>([]);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'wallet'>('card');
+  const [shareMeasurements, setShareMeasurements] = useState(true);
 
   // Fetch product details for cart items
   const { data: cartProducts = [] } = useQuery({
@@ -100,6 +102,10 @@ export default function Checkout() {
       tailor_id: null,
     }
   })).filter(item => item.product.name !== 'Loading...');
+
+  // Check if any items involve a tailor (custom order or tailor products)
+  const hasTailorItems = (checkoutMode === 'single' && !!pendingData?.tailorId) ||
+    (checkoutMode === 'cart' && cartItemsWithProducts.some(item => !!item.product.tailor_id));
 
   useEffect(() => {
     const stored = sessionStorage.getItem('pendingCustomization');
@@ -481,7 +487,33 @@ export default function Checkout() {
                 <MeasurementSelector
                   selected={selectedMeasurement}
                   onSelect={setSelectedMeasurement}
+                  shareable={shareMeasurements && hasTailorItems}
                 />
+                
+                {/* Share with tailor toggle */}
+                {selectedMeasurement && hasTailorItems && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Share2 className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor="share-measurements" className="text-sm font-medium cursor-pointer">
+                          Share measurements with tailor
+                        </Label>
+                      </div>
+                      <Switch
+                        id="share-measurements"
+                        checked={shareMeasurements}
+                        onCheckedChange={setShareMeasurements}
+                      />
+                    </div>
+                    {shareMeasurements && (
+                      <p className="text-xs text-muted-foreground mt-2 flex items-start gap-1.5">
+                        <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                        Your tailor will be able to view these measurements to ensure a perfect fit
+                      </p>
+                    )}
+                  </div>
+                )}
               </motion.section>
 
               {/* Payment method section */}

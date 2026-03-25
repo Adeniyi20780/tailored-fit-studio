@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Plus, Ruler, User, Trash2 } from 'lucide-react';
+import { Check, Plus, Ruler, User, Trash2, HelpCircle, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,21 +12,35 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useCustomerMeasurements, useCreateMeasurement, useDeleteMeasurement, Measurement } from '@/hooks/useCustomerMeasurements';
+import MeasurementGuideDialog from '@/components/measurements/MeasurementGuideDialog';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface MeasurementSelectorProps {
   selected: Measurement | null;
   onSelect: (measurement: Measurement) => void;
+  shareable?: boolean;
 }
 
 const MAX_SAVED_MEASUREMENTS = 3;
 
-export default function MeasurementSelector({ selected, onSelect }: MeasurementSelectorProps) {
+const MEASUREMENT_FIELDS = [
+  { key: 'chest', label: 'Chest', placeholder: '96' },
+  { key: 'waist', label: 'Waist', placeholder: '84' },
+  { key: 'hips', label: 'Hips', placeholder: '100' },
+  { key: 'shoulder_width', label: 'Shoulders', placeholder: '46' },
+  { key: 'sleeve_length', label: 'Sleeve', placeholder: '64' },
+  { key: 'neck', label: 'Neck', placeholder: '40' },
+  { key: 'inseam', label: 'Inseam', placeholder: '80' },
+  { key: 'height', label: 'Height', placeholder: '175' },
+] as const;
+
+export default function MeasurementSelector({ selected, onSelect, shareable }: MeasurementSelectorProps) {
   const { data: measurements, isLoading } = useCustomerMeasurements();
   const createMeasurement = useCreateMeasurement();
   const deleteMeasurement = useDeleteMeasurement();
   const [showNewForm, setShowNewForm] = useState(false);
+  const [guideField, setGuideField] = useState<string | null>(null);
   const [newMeasurement, setNewMeasurement] = useState({
     measurement_name: '',
     chest: '',
@@ -91,6 +105,10 @@ export default function MeasurementSelector({ selected, onSelect }: MeasurementS
     }
   };
 
+  const updateField = (key: string, value: string) => {
+    setNewMeasurement(prev => ({ ...prev, [key]: value }));
+  };
+
   if (isLoading) {
     return (
       <div className="animate-pulse space-y-3">
@@ -125,44 +143,31 @@ export default function MeasurementSelector({ selected, onSelect }: MeasurementS
                   <Input
                     placeholder="e.g., My Measurements"
                     value={newMeasurement.measurement_name}
-                    onChange={(e) =>
-                      setNewMeasurement({ ...newMeasurement, measurement_name: e.target.value })
-                    }
+                    onChange={(e) => updateField('measurement_name', e.target.value)}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Chest (cm)</Label>
-                    <Input type="number" placeholder="96" value={newMeasurement.chest} onChange={(e) => setNewMeasurement({ ...newMeasurement, chest: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Waist (cm)</Label>
-                    <Input type="number" placeholder="84" value={newMeasurement.waist} onChange={(e) => setNewMeasurement({ ...newMeasurement, waist: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Hips (cm)</Label>
-                    <Input type="number" placeholder="100" value={newMeasurement.hips} onChange={(e) => setNewMeasurement({ ...newMeasurement, hips: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Shoulders (cm)</Label>
-                    <Input type="number" placeholder="46" value={newMeasurement.shoulder_width} onChange={(e) => setNewMeasurement({ ...newMeasurement, shoulder_width: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Sleeve (cm)</Label>
-                    <Input type="number" placeholder="64" value={newMeasurement.sleeve_length} onChange={(e) => setNewMeasurement({ ...newMeasurement, sleeve_length: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Neck (cm)</Label>
-                    <Input type="number" placeholder="40" value={newMeasurement.neck} onChange={(e) => setNewMeasurement({ ...newMeasurement, neck: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Inseam (cm)</Label>
-                    <Input type="number" placeholder="80" value={newMeasurement.inseam} onChange={(e) => setNewMeasurement({ ...newMeasurement, inseam: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Height (cm)</Label>
-                    <Input type="number" placeholder="175" value={newMeasurement.height} onChange={(e) => setNewMeasurement({ ...newMeasurement, height: e.target.value })} />
-                  </div>
+                  {MEASUREMENT_FIELDS.map((field) => (
+                    <div key={field.key}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Label className="text-sm">{field.label} (cm)</Label>
+                        <button
+                          type="button"
+                          onClick={() => setGuideField(field.key)}
+                          className="text-muted-foreground hover:text-primary transition-colors"
+                          aria-label={`How to measure ${field.label}`}
+                        >
+                          <HelpCircle className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <Input
+                        type="number"
+                        placeholder={field.placeholder}
+                        value={newMeasurement[field.key as keyof typeof newMeasurement]}
+                        onChange={(e) => updateField(field.key, e.target.value)}
+                      />
+                    </div>
+                  ))}
                 </div>
                 <Button
                   onClick={handleCreateMeasurement}
@@ -209,6 +214,12 @@ export default function MeasurementSelector({ selected, onSelect }: MeasurementS
                       <p className="text-xs text-muted-foreground mt-1">
                         Chest: {measurement.chest || '—'}cm • Waist: {measurement.waist || '—'}cm • Height: {measurement.height || '—'}cm
                       </p>
+                      {isSelected && shareable && (
+                        <p className="text-xs text-primary mt-1 flex items-center gap-1">
+                          <Share2 className="w-3 h-3" />
+                          Will be shared with your tailor
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -250,6 +261,13 @@ export default function MeasurementSelector({ selected, onSelect }: MeasurementS
           </Button>
         </div>
       )}
+
+      {/* Measurement guide dialog */}
+      <MeasurementGuideDialog
+        open={!!guideField}
+        onOpenChange={(open) => !open && setGuideField(null)}
+        measurement={guideField || ''}
+      />
     </div>
   );
 }
