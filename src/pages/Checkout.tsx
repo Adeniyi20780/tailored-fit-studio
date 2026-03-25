@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ShieldCheck, Loader2, CheckCircle, ShoppingCart, CreditCard, Wallet } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Loader2, CheckCircle, ShoppingCart, CreditCard, Wallet, Share2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
