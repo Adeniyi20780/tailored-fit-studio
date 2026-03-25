@@ -483,7 +483,33 @@ export default function Checkout() {
                 <MeasurementSelector
                   selected={selectedMeasurement}
                   onSelect={setSelectedMeasurement}
+                  shareable={shareMeasurements && hasTailorItems}
                 />
+                
+                {/* Share with tailor toggle */}
+                {selectedMeasurement && hasTailorItems && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Share2 className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor="share-measurements" className="text-sm font-medium cursor-pointer">
+                          Share measurements with tailor
+                        </Label>
+                      </div>
+                      <Switch
+                        id="share-measurements"
+                        checked={shareMeasurements}
+                        onCheckedChange={setShareMeasurements}
+                      />
+                    </div>
+                    {shareMeasurements && (
+                      <p className="text-xs text-muted-foreground mt-2 flex items-start gap-1.5">
+                        <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                        Your tailor will be able to view these measurements to ensure a perfect fit
+                      </p>
+                    )}
+                  </div>
+                )}
               </motion.section>
 
               {/* Payment method section */}
