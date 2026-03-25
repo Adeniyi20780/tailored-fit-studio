@@ -5,6 +5,7 @@ import { ArrowLeft, ShieldCheck, Loader2, CheckCircle, ShoppingCart, CreditCard,
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Header from '@/components/layout/Header';
