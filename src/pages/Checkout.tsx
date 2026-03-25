@@ -71,6 +71,7 @@ export default function Checkout() {
   const [orderNumbers, setOrderNumbers] = useState<string[]>([]);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'wallet'>('card');
+  const [shareMeasurements, setShareMeasurements] = useState(true);
 
   // Fetch product details for cart items
   const { data: cartProducts = [] } = useQuery({
