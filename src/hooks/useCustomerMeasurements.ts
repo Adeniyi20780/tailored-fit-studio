@@ -49,3 +49,25 @@ export function useCreateMeasurement() {
     },
   });
 }
+
+export function useDeleteMeasurement() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (measurementId: string) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('customer_measurements')
+        .delete()
+        .eq('id', measurementId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['measurements', user?.id] });
+    },
+  });
+}
