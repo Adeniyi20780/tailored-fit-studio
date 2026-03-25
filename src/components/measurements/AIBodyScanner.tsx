@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
 import { 
   Camera, 
   RotateCcw, 
@@ -24,12 +25,16 @@ import {
   RefreshCw,
   Save,
   Wand2,
-  Sun
+  Sun,
+  Timer,
+  Contrast,
+  Trash2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useBodyScanJob } from "@/hooks/useBodyScanJob";
+import { useCustomerMeasurements, useDeleteMeasurement } from "@/hooks/useCustomerMeasurements";
 import { DEMO_MEASUREMENTS, generateDemoFrames } from "@/lib/demoScanData";
 
 interface MeasurementResult {
@@ -84,6 +89,16 @@ interface MeasurementResult {
 
 type Step = "intro" | "setup" | "capture" | "analyzing" | "results";
 
+const TIMER_OPTIONS = [
+  { label: "None", value: 0 },
+  { label: "5s", value: 5 },
+  { label: "10s", value: 10 },
+  { label: "15s", value: 15 },
+  { label: "20s", value: 20 },
+];
+
+const MAX_SAVED_MEASUREMENTS = 3;
+
 const AIBodyScanner = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -103,6 +118,23 @@ const AIBodyScanner = () => {
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const [brightnessLevel, setBrightnessLevel] = useState<number>(128);
   const brightnessIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Manual brightness/contrast sliders
+  const [manualBrightness, setManualBrightness] = useState(100);
+  const [manualContrast, setManualContrast] = useState(100);
+
+  // Timer countdown
+  const [timerDuration, setTimerDuration] = useState(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Save naming dialog
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveName, setSaveName] = useState("");
+
+  // Existing measurements for 3-cap enforcement
+  const { data: existingMeasurements } = useCustomerMeasurements();
+  const deleteMeasurement = useDeleteMeasurement();
 
   // Background job hook for async processing
   const {
@@ -183,7 +215,7 @@ const AIBodyScanner = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (video.videoWidth === 0) return;
-    canvas.width = 160; // small sample for performance
+    canvas.width = 160;
     canvas.height = 120;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -191,7 +223,7 @@ const AIBodyScanner = () => {
     const imageData = ctx.getImageData(0, 0, 160, 120);
     const data = imageData.data;
     let sum = 0;
-    for (let i = 0; i < data.length; i += 16) { // sample every 4th pixel
+    for (let i = 0; i < data.length; i += 16) {
       sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
     }
     const avg = sum / (data.length / 16);
@@ -218,14 +250,12 @@ const AIBodyScanner = () => {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
 
-    // Calculate average luminance
     let sum = 0;
     for (let i = 0; i < data.length; i += 4) {
       sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
     }
     const avgLum = sum / (data.length / 4);
 
-    // Only enhance if below threshold (dim image)
     if (avgLum < 120) {
       const brightnessFactor = Math.min(1.6, 130 / Math.max(avgLum, 30));
       const contrast = 1.15;
@@ -255,6 +285,34 @@ const AIBodyScanner = () => {
     return canvas.toDataURL("image/jpeg", 0.92);
   }, [enhanceFrame]);
 
+  // Countdown timer logic
+  const startWithTimer = (captureFunc: () => void) => {
+    if (timerDuration === 0) {
+      captureFunc();
+      return;
+    }
+    setCountdown(timerDuration);
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          countdownRef.current = null;
+          setCountdown(null);
+          captureFunc();
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Cleanup countdown on unmount
+  useEffect(() => {
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, []);
+
   const startCapture = async () => {
     setIsCapturing(true);
     setCapturedFrames([]);
@@ -262,7 +320,7 @@ const AIBodyScanner = () => {
 
     const frames: string[] = [];
     const totalFrames = 16;
-    const intervalMs = 1875; // ~30s total
+    const intervalMs = 1875;
 
     for (let i = 0; i < totalFrames; i++) {
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
@@ -293,11 +351,10 @@ const AIBodyScanner = () => {
     setCapturedFrames([]);
     setCaptureProgress(0);
 
-    // Simulate capture with demo frames
     const demoFrames = generateDemoFrames();
     
     for (let i = 0; i < 12; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 200)); // Faster for demo
+      await new Promise((resolve) => setTimeout(resolve, 200));
       setCapturedFrames(demoFrames.slice(0, i + 1));
       setCaptureProgress(((i + 1) / 12) * 100);
     }
@@ -305,18 +362,14 @@ const AIBodyScanner = () => {
     setIsCapturing(false);
     setCapturedFrames(demoFrames);
     
-    // In demo mode, use pre-computed results
     setStep("analyzing");
     
-    // Simulate AI processing delay
     await new Promise((resolve) => setTimeout(resolve, 2000));
     
-    // Use demo measurements adjusted for user input
     const adjustedMeasurements = { ...DEMO_MEASUREMENTS };
     const heightNum = parseFloat(height);
     const ratio = heightNum / 175;
     
-    // Scale measurements proportionally
     adjustedMeasurements.measurements = {
       ...adjustedMeasurements.measurements,
       height: heightNum,
@@ -334,19 +387,43 @@ const AIBodyScanner = () => {
 
   const analyzeFrames = async (frames: string[]) => {
     setStep("analyzing");
-    
-    // Use background job flow for resilient processing
     await submitScan(frames, parseFloat(height), gender);
+  };
+
+  const handleSaveClick = () => {
+    setSaveName(`${isDemoMode ? "[Demo] " : ""}AI Scan - ${new Date().toLocaleDateString()}`);
+    setShowSaveDialog(true);
   };
 
   const saveMeasurements = async () => {
     if (!user || !result) return;
 
+    // Check 3-measurement limit
+    const count = existingMeasurements?.length ?? 0;
+    if (count >= MAX_SAVED_MEASUREMENTS) {
+      toast({
+        title: "Measurement Limit Reached",
+        description: `You can only save ${MAX_SAVED_MEASUREMENTS} measurements. Delete one first.`,
+        variant: "destructive",
+      });
+      setShowSaveDialog(false);
+      return;
+    }
+
+    if (!saveName.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter a name for your measurements.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
       const measurementData = {
         user_id: user.id,
-        measurement_name: `${isDemoMode ? "[Demo] " : ""}AI Scan - ${new Date().toLocaleDateString()}`,
+        measurement_name: saveName.trim(),
         height: result.measurements.height,
         chest: result.measurements.chest_circumference,
         waist: result.measurements.waist_circumference,
@@ -381,8 +458,9 @@ const AIBodyScanner = () => {
 
       toast({
         title: "Measurements Saved!",
-        description: `Your ${isDemoMode ? "demo " : "AI-generated "}measurements have been saved to your profile.`,
+        description: `Your measurements "${saveName}" have been saved to your profile.`,
       });
+      setShowSaveDialog(false);
     } catch (err: any) {
       toast({
         title: "Save Failed",
@@ -394,12 +472,33 @@ const AIBodyScanner = () => {
     }
   };
 
+  const handleDeleteMeasurement = async (id: string) => {
+    try {
+      await deleteMeasurement.mutateAsync(id);
+      toast({
+        title: "Measurement Deleted",
+        description: "You can now save a new measurement.",
+      });
+    } catch {
+      toast({
+        title: "Delete Failed",
+        description: "Could not delete the measurement.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const resetScanner = () => {
     setStep("intro");
     setCapturedFrames([]);
     setCaptureProgress(0);
     setResult(null);
     setIsDemoMode(false);
+    setManualBrightness(100);
+    setManualContrast(100);
+    setTimerDuration(0);
+    setCountdown(null);
+    if (countdownRef.current) clearInterval(countdownRef.current);
     resetJob();
   };
 
@@ -407,6 +506,10 @@ const AIBodyScanner = () => {
     setIsDemoMode(true);
     setStep("setup");
   };
+
+  const canSave = isDemoMode || result?.confidence_scores.overall !== undefined && result.confidence_scores.overall >= 75;
+  const measurementCount = existingMeasurements?.length ?? 0;
+  const atLimit = measurementCount >= MAX_SAVED_MEASUREMENTS;
 
   return (
     <Card className="max-w-2xl mx-auto w-full">
@@ -562,6 +665,31 @@ const AIBodyScanner = () => {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-4"
             >
+              {/* Timer selector */}
+              {!isDemoMode && !isCapturing && countdown === null && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Timer className="w-4 h-4" />
+                    Capture Delay
+                  </Label>
+                  <div className="flex gap-2">
+                    {TIMER_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setTimerDuration(opt.value)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                          timerDuration === opt.value
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="relative aspect-[3/4] sm:aspect-video bg-black rounded-lg overflow-hidden">
                 {isDemoMode ? (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
@@ -581,10 +709,13 @@ const AIBodyScanner = () => {
                       playsInline
                       muted
                       className="w-full h-full object-cover"
-                      style={facingMode === "user" ? { transform: "scaleX(-1)" } : undefined}
+                      style={{
+                        transform: facingMode === "user" ? "scaleX(-1)" : undefined,
+                        filter: `brightness(${manualBrightness}%) contrast(${manualContrast}%)`,
+                      }}
                     />
                     <canvas ref={canvasRef} className="hidden" />
-                    {!isCapturing && (
+                    {!isCapturing && countdown === null && (
                       <button
                         onClick={toggleCamera}
                         className="absolute top-4 left-4 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
@@ -604,6 +735,22 @@ const AIBodyScanner = () => {
                     </div>
                   </>
                 )}
+
+                {/* Countdown overlay */}
+                {countdown !== null && (
+                  <div className="absolute inset-0 flex items-center justify-center z-20">
+                    <motion.div
+                      key={countdown}
+                      initial={{ scale: 2, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.5, opacity: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="text-7xl font-bold text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.7)]"
+                    >
+                      {countdown}
+                    </motion.div>
+                  </div>
+                )}
                 
                 {isCapturing && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -621,9 +768,11 @@ const AIBodyScanner = () => {
                 <div className="absolute bottom-4 left-4 right-4">
                   <Progress value={captureProgress} className="h-2" />
                   <p className="text-white text-sm text-center mt-2">
-                    {isCapturing
-                      ? `Capturing... ${Math.round(captureProgress)}%${isDemoMode ? "" : " - Rotate slowly"}`
-                      : "Position yourself and press Start"}
+                    {countdown !== null
+                      ? "Get into position..."
+                      : isCapturing
+                        ? `Capturing... ${Math.round(captureProgress)}%${isDemoMode ? "" : " - Rotate slowly"}`
+                        : "Position yourself and press Start"}
                   </p>
                 </div>
 
@@ -636,16 +785,69 @@ const AIBodyScanner = () => {
                 )}
               </div>
 
+              {/* Manual Brightness/Contrast Sliders */}
+              {!isDemoMode && !isCapturing && countdown === null && (
+                <div className="space-y-3 p-3 bg-muted/50 rounded-lg">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs flex items-center gap-1.5">
+                        <Sun className="w-3 h-3" />
+                        Brightness
+                      </Label>
+                      <span className="text-xs text-muted-foreground">{manualBrightness}%</span>
+                    </div>
+                    <Slider
+                      value={[manualBrightness]}
+                      onValueChange={([v]) => setManualBrightness(v)}
+                      min={50}
+                      max={200}
+                      step={5}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs flex items-center gap-1.5">
+                        <Contrast className="w-3 h-3" />
+                        Contrast
+                      </Label>
+                      <span className="text-xs text-muted-foreground">{manualContrast}%</span>
+                    </div>
+                    <Slider
+                      value={[manualContrast]}
+                      onValueChange={([v]) => setManualContrast(v)}
+                      min={50}
+                      max={200}
+                      step={5}
+                    />
+                  </div>
+                  {(manualBrightness !== 100 || manualContrast !== 100) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={() => { setManualBrightness(100); setManualContrast(100); }}
+                    >
+                      Reset to default
+                    </Button>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setStep("setup")} className="flex-1">
+                <Button variant="outline" onClick={() => setStep("setup")} className="flex-1" disabled={isCapturing || countdown !== null}>
                   Back
                 </Button>
                 <Button
-                  onClick={isDemoMode ? startDemoCapture : startCapture}
+                  onClick={() => startWithTimer(isDemoMode ? startDemoCapture : startCapture)}
                   className="flex-1"
-                  disabled={isCapturing}
+                  disabled={isCapturing || countdown !== null}
                 >
-                  {isCapturing ? (
+                  {countdown !== null ? (
+                    <>
+                      <Timer className="w-4 h-4 mr-2" />
+                      Starting in {countdown}s...
+                    </>
+                  ) : isCapturing ? (
                     <>
                       <Pause className="w-4 h-4 mr-2" />
                       Capturing...
@@ -653,7 +855,7 @@ const AIBodyScanner = () => {
                   ) : (
                     <>
                       <Play className="w-4 h-4 mr-2" />
-                      {isDemoMode ? "Run Demo" : "Start Capture"}
+                      {isDemoMode ? "Run Demo" : timerDuration > 0 ? `Start (${timerDuration}s delay)` : "Start Capture"}
                     </>
                   )}
                 </Button>
@@ -702,7 +904,7 @@ const AIBodyScanner = () => {
             >
               {/* Confidence Score */}
               <div className={`flex items-center justify-between p-4 rounded-lg ${
-                result.confidence_scores.overall < 70 
+                result.confidence_scores.overall < 75 
                   ? "bg-destructive/10 border border-destructive/20" 
                   : result.confidence_scores.overall < 80 
                     ? "bg-yellow-500/10 border border-yellow-500/20" 
@@ -715,16 +917,16 @@ const AIBodyScanner = () => {
                 <Badge variant={
                   isDemoMode ? "secondary" :
                   result.confidence_scores.overall >= 80 ? "default" : 
-                  result.confidence_scores.overall >= 70 ? "outline" : "destructive"
+                  result.confidence_scores.overall >= 75 ? "outline" : "destructive"
                 }>
                   {isDemoMode ? "Demo Data" : 
                    result.confidence_scores.overall >= 80 ? "High Accuracy" : 
-                   result.confidence_scores.overall >= 70 ? "Acceptable" : "Low Accuracy"}
+                   result.confidence_scores.overall >= 75 ? "Acceptable" : "Low Accuracy"}
                 </Badge>
               </div>
 
-              {/* Acceptable confidence banner (70-79%) */}
-              {!isDemoMode && result.confidence_scores.overall >= 70 && result.confidence_scores.overall < 80 && (
+              {/* Acceptable confidence banner (75-79%) */}
+              {!isDemoMode && result.confidence_scores.overall >= 75 && result.confidence_scores.overall < 80 && (
                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
@@ -740,8 +942,8 @@ const AIBodyScanner = () => {
                 </div>
               )}
 
-              {/* Low confidence warning (<70%) */}
-              {!isDemoMode && result.confidence_scores.overall < 70 && (
+              {/* Low confidence warning (<75%) */}
+              {!isDemoMode && result.confidence_scores.overall < 75 && (
                 <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
@@ -880,18 +1082,77 @@ const AIBodyScanner = () => {
                 </div>
               )}
 
+              {/* Save dialog */}
+              <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+                <DialogContent className="max-w-sm">
+                  <DialogHeader>
+                    <DialogTitle>Save Measurements</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-2">
+                    <div>
+                      <Label>Measurement Name</Label>
+                      <Input
+                        placeholder="e.g., My Casual Fit"
+                        value={saveName}
+                        onChange={(e) => setSaveName(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {measurementCount}/{MAX_SAVED_MEASUREMENTS} saved measurements used
+                    </p>
+
+                    {/* Show existing measurements if at limit */}
+                    {atLimit && (
+                      <div className="space-y-2">
+                        <p className="text-sm text-destructive font-medium">
+                          Maximum {MAX_SAVED_MEASUREMENTS} measurements reached. Delete one to save a new one:
+                        </p>
+                        {existingMeasurements?.map((m) => (
+                          <div key={m.id} className="flex items-center justify-between p-2 border rounded-lg text-sm">
+                            <span className="truncate flex-1">{m.measurement_name || "Unnamed"}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteMeasurement(m.id)}
+                              disabled={deleteMeasurement.isPending}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={saveMeasurements}
+                      disabled={isSaving || atLimit || !saveName.trim()}
+                      className="w-full"
+                    >
+                      {isSaving ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      {isSaving ? "Saving..." : "Save"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <div className="flex gap-3">
                 <Button variant="outline" onClick={resetScanner} className="flex-1">
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Scan Again
                 </Button>
-                <Button onClick={saveMeasurements} className="flex-1" disabled={isSaving || (!isDemoMode && result.confidence_scores.overall < 70)}>
-                  {isSaving ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  {!isDemoMode && result.confidence_scores.overall < 70 ? "Rescan Required" : "Save Measurements"}
+                <Button
+                  onClick={handleSaveClick}
+                  className="flex-1"
+                  disabled={!canSave}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {!isDemoMode && result.confidence_scores.overall < 75 ? "Rescan Required" : "Save Measurements"}
                 </Button>
               </div>
             </motion.div>
