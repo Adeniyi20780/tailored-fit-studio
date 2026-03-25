@@ -724,6 +724,15 @@ const AIBodyScanner = () => {
                       }}
                     />
                     <canvas ref={canvasRef} className="hidden" />
+                    {/* Body position guide overlay */}
+                    {!isCapturing && countdown === null && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <svg viewBox="0 0 200 360" className="h-[75%] opacity-25">
+                          <path d="M100 28 C90 28 82 20 82 10 C82 0 90 -6 100 -6 C110 -6 118 0 118 10 C118 20 110 28 100 28Z M100 32 L80 36 L60 42 L42 70 L30 110 L36 114 L52 80 L58 78 L52 150 L48 200 L44 280 L50 310 L68 310 L76 240 L82 200 L88 240 L82 280 L80 310 L100 312 L120 310 L118 280 L112 240 L118 200 L124 240 L132 310 L150 310 L156 280 L152 200 L148 150 L142 78 L148 80 L164 114 L170 110 L158 70 L140 42 L120 36 Z" fill="none" stroke="white" strokeWidth="1.5" />
+                        </svg>
+                        <p className="absolute bottom-16 left-0 right-0 text-center text-xs text-white/60 font-medium">Align your body within the outline</p>
+                      </div>
+                    )}
                     {!isCapturing && countdown === null && (
                       <button
                         onClick={toggleCamera}
