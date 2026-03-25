@@ -103,6 +103,10 @@ export default function Checkout() {
     }
   })).filter(item => item.product.name !== 'Loading...');
 
+  // Check if any items involve a tailor (custom order or tailor products)
+  const hasTailorItems = (checkoutMode === 'single' && !!pendingData?.tailorId) ||
+    (checkoutMode === 'cart' && cartItemsWithProducts.some(item => !!item.product.tailor_id));
+
   useEffect(() => {
     const stored = sessionStorage.getItem('pendingCustomization');
     if (stored) {
