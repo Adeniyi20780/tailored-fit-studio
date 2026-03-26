@@ -631,15 +631,63 @@ const AIBodyScanner = () => {
             >
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="height">Your Height (cm)</Label>
-                  <Input
-                    id="height"
-                    type="number"
-                    placeholder="175"
-                    value={height}
-                    onChange={(e) => setHeight(e.target.value)}
-                    className="mt-1"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="height">Your Height</Label>
+                    <ToggleGroup type="single" value={heightUnit} onValueChange={(v) => {
+                      if (v === "cm" || v === "ft") {
+                        setHeightUnit(v);
+                        if (v === "ft" && height) {
+                          const totalInches = parseFloat(height) / 2.54;
+                          setHeightFeet(Math.floor(totalInches / 12).toString());
+                          setHeightInches(Math.round(totalInches % 12).toString());
+                        } else if (v === "cm" && heightFeet) {
+                          const cm = (parseFloat(heightFeet || "0") * 30.48) + (parseFloat(heightInches || "0") * 2.54);
+                          setHeight(Math.round(cm).toString());
+                        }
+                      }
+                    }} className="h-7">
+                      <ToggleGroupItem value="cm" className="text-xs px-2.5 h-7">cm</ToggleGroupItem>
+                      <ToggleGroupItem value="ft" className="text-xs px-2.5 h-7">ft</ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+                  {heightUnit === "cm" ? (
+                    <Input
+                      id="height"
+                      type="number"
+                      placeholder="175"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                    />
+                  ) : (
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          placeholder="5"
+                          value={heightFeet}
+                          onChange={(e) => {
+                            setHeightFeet(e.target.value);
+                            const cm = (parseFloat(e.target.value || "0") * 30.48) + (parseFloat(heightInches || "0") * 2.54);
+                            setHeight(Math.round(cm).toString());
+                          }}
+                        />
+                        <span className="text-xs text-muted-foreground mt-0.5 block">feet</span>
+                      </div>
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          placeholder="9"
+                          value={heightInches}
+                          onChange={(e) => {
+                            setHeightInches(e.target.value);
+                            const cm = (parseFloat(heightFeet || "0") * 30.48) + (parseFloat(e.target.value || "0") * 2.54);
+                            setHeight(Math.round(cm).toString());
+                          }}
+                        />
+                        <span className="text-xs text-muted-foreground mt-0.5 block">inches</span>
+                      </div>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">
                     This is used as a reference for accurate measurements
                   </p>
@@ -714,7 +762,11 @@ const AIBodyScanner = () => {
                 </div>
               )}
 
-              <div className="relative aspect-[3/4] sm:aspect-video bg-black rounded-lg overflow-hidden">
+              <div className={`relative bg-black rounded-lg overflow-hidden ${
+                isFullscreen 
+                  ? "fixed inset-0 z-50 rounded-none" 
+                  : "aspect-[3/4] sm:aspect-video"
+              }`}>
                 {isDemoMode ? (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20 relative">
                     {/* Body position guide for demo */}
