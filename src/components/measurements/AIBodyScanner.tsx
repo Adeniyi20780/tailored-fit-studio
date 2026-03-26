@@ -28,8 +28,11 @@ import {
   Sun,
   Timer,
   Contrast,
-  Trash2
+  Trash2,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -131,6 +134,14 @@ const AIBodyScanner = () => {
   // Save naming dialog
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveName, setSaveName] = useState("");
+
+  // Height unit toggle
+  const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("cm");
+  const [heightFeet, setHeightFeet] = useState("");
+  const [heightInches, setHeightInches] = useState("");
+
+  // Fullscreen camera
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Existing measurements for 3-cap enforcement
   const { data: existingMeasurements } = useCustomerMeasurements();
@@ -312,6 +323,15 @@ const AIBodyScanner = () => {
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
   }, []);
+
+  // Escape key to exit fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isFullscreen) setIsFullscreen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen]);
 
   const startCapture = async () => {
     setIsCapturing(true);
@@ -498,6 +518,10 @@ const AIBodyScanner = () => {
     setManualContrast(100);
     setTimerDuration(0);
     setCountdown(null);
+    setHeightUnit("cm");
+    setHeightFeet("");
+    setHeightInches("");
+    setIsFullscreen(false);
     if (countdownRef.current) clearInterval(countdownRef.current);
     resetJob();
   };
@@ -607,15 +631,63 @@ const AIBodyScanner = () => {
             >
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="height">Your Height (cm)</Label>
-                  <Input
-                    id="height"
-                    type="number"
-                    placeholder="175"
-                    value={height}
-                    onChange={(e) => setHeight(e.target.value)}
-                    className="mt-1"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="height">Your Height</Label>
+                    <ToggleGroup type="single" value={heightUnit} onValueChange={(v) => {
+                      if (v === "cm" || v === "ft") {
+                        setHeightUnit(v);
+                        if (v === "ft" && height) {
+                          const totalInches = parseFloat(height) / 2.54;
+                          setHeightFeet(Math.floor(totalInches / 12).toString());
+                          setHeightInches(Math.round(totalInches % 12).toString());
+                        } else if (v === "cm" && heightFeet) {
+                          const cm = (parseFloat(heightFeet || "0") * 30.48) + (parseFloat(heightInches || "0") * 2.54);
+                          setHeight(Math.round(cm).toString());
+                        }
+                      }
+                    }} className="h-7">
+                      <ToggleGroupItem value="cm" className="text-xs px-2.5 h-7">cm</ToggleGroupItem>
+                      <ToggleGroupItem value="ft" className="text-xs px-2.5 h-7">ft</ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+                  {heightUnit === "cm" ? (
+                    <Input
+                      id="height"
+                      type="number"
+                      placeholder="175"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                    />
+                  ) : (
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          placeholder="5"
+                          value={heightFeet}
+                          onChange={(e) => {
+                            setHeightFeet(e.target.value);
+                            const cm = (parseFloat(e.target.value || "0") * 30.48) + (parseFloat(heightInches || "0") * 2.54);
+                            setHeight(Math.round(cm).toString());
+                          }}
+                        />
+                        <span className="text-xs text-muted-foreground mt-0.5 block">feet</span>
+                      </div>
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          placeholder="9"
+                          value={heightInches}
+                          onChange={(e) => {
+                            setHeightInches(e.target.value);
+                            const cm = (parseFloat(heightFeet || "0") * 30.48) + (parseFloat(e.target.value || "0") * 2.54);
+                            setHeight(Math.round(cm).toString());
+                          }}
+                        />
+                        <span className="text-xs text-muted-foreground mt-0.5 block">inches</span>
+                      </div>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">
                     This is used as a reference for accurate measurements
                   </p>
@@ -690,14 +762,18 @@ const AIBodyScanner = () => {
                 </div>
               )}
 
-              <div className="relative aspect-[3/4] sm:aspect-video bg-black rounded-lg overflow-hidden">
+              <div className={`relative bg-black rounded-lg overflow-hidden ${
+                isFullscreen 
+                  ? "fixed inset-0 z-50 rounded-none" 
+                  : "aspect-[3/4] sm:aspect-video"
+              }`}>
                 {isDemoMode ? (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20 relative">
                     {/* Body position guide for demo */}
                     {!isCapturing && countdown === null && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                        <svg viewBox="0 0 200 360" className="h-[75%] opacity-30">
-                          <path d="M100 28 C90 28 82 20 82 10 C82 0 90 -6 100 -6 C110 -6 118 0 118 10 C118 20 110 28 100 28Z M100 32 L80 36 L60 42 L42 70 L30 110 L36 114 L52 80 L58 78 L52 150 L48 200 L44 280 L50 310 L68 310 L76 240 L82 200 L88 240 L82 280 L80 310 L100 312 L120 310 L118 280 L112 240 L118 200 L124 240 L132 310 L150 310 L156 280 L152 200 L148 150 L142 78 L148 80 L164 114 L170 110 L158 70 L140 42 L120 36 Z" fill="none" stroke="white" strokeWidth="1.5" />
+                        <svg viewBox="0 0 1420 2048" className="h-[80%] opacity-[0.18]">
+                          <path transform="translate(740,73)" d="m0 0h10l22 3 13 4 16 8 13 11 9 11 8 15 7 22 3 20v31l-3 23-6 27-9 30-5 13-6 9-6 5h-2l5 48 2 7 16 9 19 12 16 11 2 2 29 1 21 2 17 3 16 5 16 8 11 8 8 10 12 20 10 18 5 15 3 17v69l8 41 6 42 2 27 2 32 4 11 11 18 5 11 13 36 7 24 6 25 2 12 4 38 4 24 7 28 7 19 4 9v2l15 2 14 7 10 9 12 14 11 14 10 11 5 6 12 8 5 5 1 6-3 6-3 2h-14l-12-4-11-8-4-5-7-4 2 9 4 9 9 16 15 25 4 8v9l-5 5-7 1-7-4-8-10-14-23-9-12 1 10 4 16 5 10 6 15 1 5v12l-4 6-9 1-6-5-6-12-15-40-1-1 2 27v20l-3 6-4 3h-7l-6-7-3-15-3-25-1-15-1-1 1 15v24l-3 7-5 4-5-1-5-4-3-8-4-45-2-14-6-16-6-21-1-6v-14l1-1v-8l-7-16-16-34-18-36-10-19-13-27-14-33-10-30-8-34-7-31-12-40-7-18-2 3-14 46-3 12v131l8 39 6 37 2 18 1 22v57l-1 48-2 37-6 61-5 37-5 29-9 40-16 61-5 27-1 8v31l3 22 9 41 4 21 2 16v47l-4 24-8 34-14 47-18 59-17 56-8 29-3 15v10l5 14 13 24 12 16 5 5 11 9 5 5 1 6-2 5-5 4-9 3-31 6h-21l-7-2-2 5-9 4-5 1h-12l-7-2-7-6-2-4h-2l-4 5-9 6-4 1-16-1-8-3-5-4v-2l-8 1-1 1h-15l-19-3-22-5-8-6v-10l5-5 10-8 8-8 14-21 9-16 5-13 1-5v-7l-4-17-16-55-9-28-12-40-14-46-9-31-6-29-3-22v-45l5-30 6-28 3-11 4-29v-31l-3-21-5-23-10-36-8-34-9-47-7-51-3-30-4-61-2-52v-31l2-43 5-41 6-35 3-14v-15l-3-9v-111l-9-36-6-18-6 14-10 30-6 24-9 41-7 25-8 22-15 33-16 33-8 15-8 16-17 35-11 26v6l1 1v15l-5 21-7 19-2 9-3 30-2 22-3 9-6 5-6-1-4-5-3-10-3 8-3 15-4 5-2 1h-8l-5-6-1-12 1-18v-16l-8 18-10 27-7 8-2 1h-6l-6-5-1-2v-12l5-14 8-20 5-16v-2l-4 2-8 10-15 22-7 8-6 3-7-1-3-3-1-2v-7l3-8 11-18 18-33 2-5v-3l-6 3-10 9-10 5-9 2h-12l-5-3-2-4 1-7 11-9 8-7 7-7 9-11 11-14 14-15 8-6 10-5 15-2 3-5 8-22 7-27 4-22 6-49 6-29 11-37 12-29 8-15 6-10 3-10 2-19 2-31 5-40 6-35 4-18v-67l3-20 6-16 11-21 10-16 7-9 9-8 12-7 17-6 21-4 21-2 29-1 16-10 15-10 20-12 6-2 2-26 3-27-9-8-8-16-7-21-8-32-3-17-2-24v-11l2-22 5-21 8-19 8-12 11-11 10-7 13-6 14-4z" fill="white" />
                         </svg>
                         <p className="absolute bottom-16 left-0 right-0 text-center text-xs text-white/60 font-medium">Align your body within the outline</p>
                       </div>
@@ -727,30 +803,43 @@ const AIBodyScanner = () => {
                     {/* Body position guide overlay */}
                     {!isCapturing && countdown === null && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                        <svg viewBox="0 0 200 360" className="h-[75%] opacity-25">
-                          <path d="M100 28 C90 28 82 20 82 10 C82 0 90 -6 100 -6 C110 -6 118 0 118 10 C118 20 110 28 100 28Z M100 32 L80 36 L60 42 L42 70 L30 110 L36 114 L52 80 L58 78 L52 150 L48 200 L44 280 L50 310 L68 310 L76 240 L82 200 L88 240 L82 280 L80 310 L100 312 L120 310 L118 280 L112 240 L118 200 L124 240 L132 310 L150 310 L156 280 L152 200 L148 150 L142 78 L148 80 L164 114 L170 110 L158 70 L140 42 L120 36 Z" fill="none" stroke="white" strokeWidth="1.5" />
+                        <svg viewBox="0 0 1420 2048" className="h-[80%] opacity-[0.18]">
+                          <path transform="translate(740,73)" d="m0 0h10l22 3 13 4 16 8 13 11 9 11 8 15 7 22 3 20v31l-3 23-6 27-9 30-5 13-6 9-6 5h-2l5 48 2 7 16 9 19 12 16 11 2 2 29 1 21 2 17 3 16 5 16 8 11 8 8 10 12 20 10 18 5 15 3 17v69l8 41 6 42 2 27 2 32 4 11 11 18 5 11 13 36 7 24 6 25 2 12 4 38 4 24 7 28 7 19 4 9v2l15 2 14 7 10 9 12 14 11 14 10 11 5 6 12 8 5 5 1 6-3 6-3 2h-14l-12-4-11-8-4-5-7-4 2 9 4 9 9 16 15 25 4 8v9l-5 5-7 1-7-4-8-10-14-23-9-12 1 10 4 16 5 10 6 15 1 5v12l-4 6-9 1-6-5-6-12-15-40-1-1 2 27v20l-3 6-4 3h-7l-6-7-3-15-3-25-1-15-1-1 1 15v24l-3 7-5 4-5-1-5-4-3-8-4-45-2-14-6-16-6-21-1-6v-14l1-1v-8l-7-16-16-34-18-36-10-19-13-27-14-33-10-30-8-34-7-31-12-40-7-18-2 3-14 46-3 12v131l8 39 6 37 2 18 1 22v57l-1 48-2 37-6 61-5 37-5 29-9 40-16 61-5 27-1 8v31l3 22 9 41 4 21 2 16v47l-4 24-8 34-14 47-18 59-17 56-8 29-3 15v10l5 14 13 24 12 16 5 5 11 9 5 5 1 6-2 5-5 4-9 3-31 6h-21l-7-2-2 5-9 4-5 1h-12l-7-2-7-6-2-4h-2l-4 5-9 6-4 1-16-1-8-3-5-4v-2l-8 1-1 1h-15l-19-3-22-5-8-6v-10l5-5 10-8 8-8 14-21 9-16 5-13 1-5v-7l-4-17-16-55-9-28-12-40-14-46-9-31-6-29-3-22v-45l5-30 6-28 3-11 4-29v-31l-3-21-5-23-10-36-8-34-9-47-7-51-3-30-4-61-2-52v-31l2-43 5-41 6-35 3-14v-15l-3-9v-111l-9-36-6-18-6 14-10 30-6 24-9 41-7 25-8 22-15 33-16 33-8 15-8 16-17 35-11 26v6l1 1v15l-5 21-7 19-2 9-3 30-2 22-3 9-6 5-6-1-4-5-3-10-3 8-3 15-4 5-2 1h-8l-5-6-1-12 1-18v-16l-8 18-10 27-7 8-2 1h-6l-6-5-1-2v-12l5-14 8-20 5-16v-2l-4 2-8 10-15 22-7 8-6 3-7-1-3-3-1-2v-7l3-8 11-18 18-33 2-5v-3l-6 3-10 9-10 5-9 2h-12l-5-3-2-4 1-7 11-9 8-7 7-7 9-11 11-14 14-15 8-6 10-5 15-2 3-5 8-22 7-27 4-22 6-49 6-29 11-37 12-29 8-15 6-10 3-10 2-19 2-31 5-40 6-35 4-18v-67l3-20 6-16 11-21 10-16 7-9 9-8 12-7 17-6 21-4 21-2 29-1 16-10 15-10 20-12 6-2 2-26 3-27-9-8-8-16-7-21-8-32-3-17-2-24v-11l2-22 5-21 8-19 8-12 11-11 10-7 13-6 14-4z" fill="white" />
                         </svg>
                         <p className="absolute bottom-16 left-0 right-0 text-center text-xs text-white/60 font-medium">Align your body within the outline</p>
                       </div>
                     )}
                     {!isCapturing && countdown === null && (
-                      <button
-                        onClick={toggleCamera}
-                        className="absolute top-4 left-4 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                        aria-label="Switch camera"
-                      >
-                        <RefreshCw className="w-5 h-5" />
-                      </button>
+                      <div className="absolute top-4 left-4 flex gap-2">
+                        <button
+                          onClick={toggleCamera}
+                          className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                          aria-label="Switch camera"
+                        >
+                          <RefreshCw className="w-5 h-5" />
+                        </button>
+                      </div>
                     )}
-                    {/* Brightness indicator */}
-                    <div className={`absolute top-4 right-16 flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
-                      brightnessLevel < 60 ? "bg-destructive/80 text-white" : 
-                      brightnessLevel < 100 ? "bg-yellow-500/80 text-white" : 
-                      "bg-black/40 text-white"
-                    }`}>
-                      <Sun className="w-3 h-3" />
-                      {brightnessLevel < 60 ? "Too Dark" : brightnessLevel < 100 ? "Low Light" : "Good"}
-                    </div>
+                    {/* Fullscreen toggle & Brightness indicator */}
+                    {!isCapturing && countdown === null && (
+                      <div className="absolute top-4 right-4 flex items-center gap-2">
+                        <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                          brightnessLevel < 60 ? "bg-destructive/80 text-white" : 
+                          brightnessLevel < 100 ? "bg-yellow-500/80 text-white" : 
+                          "bg-black/40 text-white"
+                        }`}>
+                          <Sun className="w-3 h-3" />
+                          {brightnessLevel < 60 ? "Too Dark" : brightnessLevel < 100 ? "Low Light" : "Good"}
+                        </div>
+                        <button
+                          onClick={() => setIsFullscreen(!isFullscreen)}
+                          className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                          aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                        >
+                          {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
 

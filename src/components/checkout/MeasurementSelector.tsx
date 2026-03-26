@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useCustomerMeasurements, useCreateMeasurement, useDeleteMeasurement, Measurement } from '@/hooks/useCustomerMeasurements';
 import MeasurementGuideDialog from '@/components/measurements/MeasurementGuideDialog';
 import { cn } from '@/lib/utils';
@@ -41,6 +42,9 @@ export default function MeasurementSelector({ selected, onSelect, shareable }: M
   const deleteMeasurement = useDeleteMeasurement();
   const [showNewForm, setShowNewForm] = useState(false);
   const [guideField, setGuideField] = useState<string | null>(null);
+  const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("cm");
+  const [heightFeet, setHeightFeet] = useState("");
+  const [heightInches, setHeightInches] = useState("");
   const [newMeasurement, setNewMeasurement] = useState({
     measurement_name: '',
     chest: '',
@@ -150,7 +154,27 @@ export default function MeasurementSelector({ selected, onSelect, shareable }: M
                   {MEASUREMENT_FIELDS.map((field) => (
                     <div key={field.key}>
                       <div className="flex items-center gap-1.5 mb-1">
-                        <Label className="text-sm">{field.label} (cm)</Label>
+                        <Label className="text-sm">
+                          {field.label} {field.key === 'height' ? '' : '(cm)'}
+                        </Label>
+                        {field.key === 'height' && (
+                          <ToggleGroup type="single" value={heightUnit} onValueChange={(v) => {
+                            if (v === "cm" || v === "ft") {
+                              setHeightUnit(v);
+                              if (v === "ft" && newMeasurement.height) {
+                                const totalInches = parseFloat(newMeasurement.height) / 2.54;
+                                setHeightFeet(Math.floor(totalInches / 12).toString());
+                                setHeightInches(Math.round(totalInches % 12).toString());
+                              } else if (v === "cm" && heightFeet) {
+                                const cm = (parseFloat(heightFeet || "0") * 30.48) + (parseFloat(heightInches || "0") * 2.54);
+                                updateField('height', Math.round(cm).toString());
+                              }
+                            }
+                          }} className="h-6">
+                            <ToggleGroupItem value="cm" className="text-[10px] px-1.5 h-6">cm</ToggleGroupItem>
+                            <ToggleGroupItem value="ft" className="text-[10px] px-1.5 h-6">ft</ToggleGroupItem>
+                          </ToggleGroup>
+                        )}
                         <button
                           type="button"
                           onClick={() => setGuideField(field.key)}
@@ -160,12 +184,43 @@ export default function MeasurementSelector({ selected, onSelect, shareable }: M
                           <HelpCircle className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <Input
-                        type="number"
-                        placeholder={field.placeholder}
-                        value={newMeasurement[field.key as keyof typeof newMeasurement]}
-                        onChange={(e) => updateField(field.key, e.target.value)}
-                      />
+                      {field.key === 'height' && heightUnit === 'ft' ? (
+                        <div className="flex gap-1.5">
+                          <div className="flex-1">
+                            <Input
+                              type="number"
+                              placeholder="5"
+                              value={heightFeet}
+                              onChange={(e) => {
+                                setHeightFeet(e.target.value);
+                                const cm = (parseFloat(e.target.value || "0") * 30.48) + (parseFloat(heightInches || "0") * 2.54);
+                                updateField('height', Math.round(cm).toString());
+                              }}
+                            />
+                            <span className="text-[10px] text-muted-foreground">ft</span>
+                          </div>
+                          <div className="flex-1">
+                            <Input
+                              type="number"
+                              placeholder="9"
+                              value={heightInches}
+                              onChange={(e) => {
+                                setHeightInches(e.target.value);
+                                const cm = (parseFloat(heightFeet || "0") * 30.48) + (parseFloat(e.target.value || "0") * 2.54);
+                                updateField('height', Math.round(cm).toString());
+                              }}
+                            />
+                            <span className="text-[10px] text-muted-foreground">in</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <Input
+                          type="number"
+                          placeholder={field.placeholder}
+                          value={newMeasurement[field.key as keyof typeof newMeasurement]}
+                          onChange={(e) => updateField(field.key, e.target.value)}
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
