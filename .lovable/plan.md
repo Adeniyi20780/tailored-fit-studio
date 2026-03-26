@@ -1,46 +1,43 @@
 
 
-## Enhancements: Body Position Guide, Visual Measurement Guides, and Tailor Sharing
+## Enhance AI Body Scanner: SVG Overlay, Height Unit Toggle, and Fullscreen Camera
 
-### 1. Body Position Guide Overlay (`AIBodyScanner.tsx`)
+### 1. Replace Body Position Guide SVG (`AIBodyScanner.tsx`, lines 699-701 and 730-732)
 
-Add an inline SVG silhouette overlay on the camera preview showing a standing figure with arms slightly away from the body. Rendered as a semi-transparent stroke with `pointer-events-none`, visible only when the camera is live and not capturing. Includes a small "Align your body" label.
+Replace both inline SVG silhouettes (demo mode and live camera) with the user-provided SVG:
 
-### 2. Manual Measurement Entry with Visual + Text Guides (`MeasurementSelector.tsx`)
+```jsx
+<svg viewBox="0 0 1420 2048" className="h-[80%] opacity-[0.18]">
+  <path transform="translate(740,73)" d="m0 0h10l22 3 13 4..." fill="white" />
+</svg>
+```
 
-Create a new component `src/components/measurements/MeasurementGuideDialog.tsx` that serves as a visual guide popup for each body part:
+- Fill changed to `white` for visibility on camera backgrounds
+- Opacity `0.18` for a subtle guide
+- `h-[80%]` to fit the taller aspect ratio
 
-- Each measurement field (Chest, Waist, Hips, Shoulders, Sleeve, Neck, Inseam, Height) gets a clickable `HelpCircle` icon next to the label
-- Clicking opens a dialog showing:
-  - An **inline SVG illustration** of a body outline with the specific measurement highlighted (arrows, dotted lines, colored region)
-  - A **text instruction** explaining how to take that measurement
-- Each SVG is a simple human silhouette with the relevant area highlighted in accent color with measurement arrows
+### 2. Height Input: CM/FT Toggle (`AIBodyScanner.tsx`)
 
-**SVG illustrations per measurement:**
-- **Chest**: Body front view, horizontal dashed line around chest with arrows
-- **Waist**: Body front view, horizontal line at narrowest torso point
-- **Hips**: Body front view, horizontal line at widest hip area
-- **Shoulders**: Body back view, horizontal line across shoulder points
-- **Sleeve**: Body side view, line from shoulder to wrist
-- **Neck**: Close-up neck area with circular measurement line
-- **Inseam**: Body front view, vertical line along inner leg
-- **Height**: Full body side view, vertical arrow floor to head
+In the save measurement dialog (where height is entered), add a unit toggle:
 
-### 3. Share Measurement with Tailor at Checkout (`Checkout.tsx`)
+- Add `heightUnit` state: `"cm"` (default) or `"ft"`
+- When `"ft"`, show two inputs: feet and inches (e.g., 5 ft 9 in)
+- Convert to cm internally before saving (`(feet * 30.48) + (inches * 2.54)`)
+- Display the toggle as two small buttons (`cm | ft`) next to the Height label
+- Also apply this to the `MeasurementSelector.tsx` manual entry form
 
-- Add a "Share measurements with tailor" toggle below the MeasurementSelector, visible when a measurement is selected and the order involves a tailor (custom order or cart items with `tailor_id`)
-- Pass the `shareMeasurements` flag along with the order
-- Add info text: "Your tailor will be able to view these measurements to ensure a perfect fit"
-- Update `MeasurementSelector` with an optional `shareable` prop to show a sharing note on the selected measurement
+### 3. Fullscreen Camera Toggle (`AIBodyScanner.tsx`)
+
+Add a fullscreen toggle button on the camera preview:
+
+- Add `isFullscreen` state
+- Add a `Maximize2`/`Minimize2` icon button (top-right of camera frame, next to brightness indicator)
+- When active, the camera container gets `fixed inset-0 z-50` classes instead of the normal `aspect-[3/4]` sizing
+- All overlay elements (silhouette, countdown, brightness, camera switch) remain functional in fullscreen
+- Exit fullscreen via the minimize button or pressing Escape (add a `keydown` listener)
+- Import `Maximize2` and `Minimize2` from lucide-react
 
 ### Files Modified
-- `src/components/measurements/AIBodyScanner.tsx` — SVG body position overlay
-- `src/components/measurements/MeasurementGuideDialog.tsx` — **new file**, visual guide component with SVG illustrations and text per body part
-- `src/components/checkout/MeasurementSelector.tsx` — integrate guide icons, shareable prop
-- `src/pages/Checkout.tsx` — share-with-tailor toggle
-
-### Technical Notes
-- All SVGs are inline React components, no external assets needed
-- No database changes required; tailor access uses existing RLS policy
-- Guide dialog reuses existing `Dialog` component from shadcn/ui
+- `src/components/measurements/AIBodyScanner.tsx` — all three changes
+- `src/components/checkout/MeasurementSelector.tsx` — height cm/ft toggle in manual entry form
 
