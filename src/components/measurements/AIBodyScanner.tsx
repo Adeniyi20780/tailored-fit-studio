@@ -28,8 +28,11 @@ import {
   Sun,
   Timer,
   Contrast,
-  Trash2
+  Trash2,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
