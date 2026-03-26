@@ -135,6 +135,14 @@ const AIBodyScanner = () => {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveName, setSaveName] = useState("");
 
+  // Height unit toggle
+  const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("cm");
+  const [heightFeet, setHeightFeet] = useState("");
+  const [heightInches, setHeightInches] = useState("");
+
+  // Fullscreen camera
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   // Existing measurements for 3-cap enforcement
   const { data: existingMeasurements } = useCustomerMeasurements();
   const deleteMeasurement = useDeleteMeasurement();
@@ -315,6 +323,15 @@ const AIBodyScanner = () => {
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
   }, []);
+
+  // Escape key to exit fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isFullscreen) setIsFullscreen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen]);
 
   const startCapture = async () => {
     setIsCapturing(true);
@@ -501,6 +518,10 @@ const AIBodyScanner = () => {
     setManualContrast(100);
     setTimerDuration(0);
     setCountdown(null);
+    setHeightUnit("cm");
+    setHeightFeet("");
+    setHeightInches("");
+    setIsFullscreen(false);
     if (countdownRef.current) clearInterval(countdownRef.current);
     resetJob();
   };
