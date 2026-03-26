@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useCustomerMeasurements, useCreateMeasurement, useDeleteMeasurement, Measurement } from '@/hooks/useCustomerMeasurements';
 import MeasurementGuideDialog from '@/components/measurements/MeasurementGuideDialog';
 import { cn } from '@/lib/utils';
