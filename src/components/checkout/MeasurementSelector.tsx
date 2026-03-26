@@ -42,6 +42,9 @@ export default function MeasurementSelector({ selected, onSelect, shareable }: M
   const deleteMeasurement = useDeleteMeasurement();
   const [showNewForm, setShowNewForm] = useState(false);
   const [guideField, setGuideField] = useState<string | null>(null);
+  const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("cm");
+  const [heightFeet, setHeightFeet] = useState("");
+  const [heightInches, setHeightInches] = useState("");
   const [newMeasurement, setNewMeasurement] = useState({
     measurement_name: '',
     chest: '',
